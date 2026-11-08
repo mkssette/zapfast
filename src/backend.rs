@@ -311,6 +311,8 @@ pub enum Command {
         on: bool,
         focused: Option<ChatId>,
     },
+    /// Explicit request to reconcile history on user demand.
+    ManualSync,
     /// A page of the chat's photos and playable videos, answered by
     /// `Event::ChatMedia`. `None` asks for the newest page; `around` centres it
     /// on one message, so a viewer opened on a photo older than the newest
@@ -1905,7 +1907,9 @@ impl Backend {
     /// Captures real UI commands for an offline demo's local responder.
     #[cfg(any(test, feature = "demo"))]
     pub(crate) fn record_demo_commands(&mut self) {
-        assert!(self.offline && self.thread.is_none());
+        if !self.offline || self.thread.is_some() {
+            return;
+        }
         self.demo_commands = Some(Default::default());
     }
 

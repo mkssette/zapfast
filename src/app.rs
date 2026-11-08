@@ -206,6 +206,9 @@ pub struct Conversation {
     pub(crate) rows: HashMap<String, RowHeight>,
     /// The keyboard page, Home, or End scroll under way in the message list.
     pub(crate) key_scroll: Option<KeyScroll>,
+    pub(crate) initial_loaded: bool,
+    /// adding a transcript row to the list triggers a scroll to it, but only once per
+    pub(crate) arrivals: HashMap<String, Instant>,
 }
 
 /// A keyboard scroll the message list eases through, one instant step per
@@ -463,6 +466,7 @@ pub struct App {
     pub accounts: Vec<Account>,
     pub active: usize,
     pub adding_account: bool,
+    pub debug_account: bool,
     /// The account on screen when "Add account" was chosen, for Cancel.
     account_before_adding: Option<AccountId>,
     /// Whether the account switcher under our own avatar is open.
@@ -978,6 +982,8 @@ pub struct App {
     announced_offline: bool,
     /// "Connecting" is spoken once per offline episode, not on every retry.
     announced_connecting: bool,
+    /// Scheduled automated mock replies for local testing.
+    pub(crate) debug_replies: Vec<(std::time::Instant, ChatId, String)>,
 }
 
 /// A message that flashes after a jump to it, as WhatsApp does.
@@ -1553,6 +1559,7 @@ impl App {
             accounts,
             active,
             adding_account: false,
+            debug_account: false,
             account_before_adding: None,
             account_menu: false,
             palette,
@@ -1788,6 +1795,7 @@ impl App {
             announcer: Default::default(),
             announced_offline: false,
             announced_connecting: false,
+            debug_replies: Vec::new(),
         };
         // A hand-edited speed snaps to a supported one, so a speed control
         // always shows the speed that plays.
@@ -2091,6 +2099,32 @@ impl App {
         self.report_presence();
         self.nav_history.clear();
     }
+
+    #[cfg(any(test, feature = "demo"))]
+    pub fn enable_debug_account(&mut self) {
+        if self.link.is_connected() && !self.backend.is_offline() {
+            self.add_account();
+        }
+        crate::demo::populate(self);
+        self.adding_account = false;
+        self.link = LinkStatus::Connected;
+        self.me_name = Some("Debug Account".into());
+        if let Some(chat) = self.chats.first().cloned() {
+            self.open_chat(chat.id);
+        }
+        self.toast("Local debug account activated");
+    }
+
+    #[cfg(any(test, feature = "demo"))]
+    pub(crate) fn tick_debug_account(&mut self, ctx: &egui::Context) {
+        if !self.backend.is_offline() {
+            return;
+        }
+        crate::demo::tour::tick(self, ctx);
+    }
+
+    #[cfg(not(any(test, feature = "demo")))]
+    pub(crate) fn tick_debug_account(&mut self, _ctx: &egui::Context) {}
 
     /// Unlinks an account and, once its backend has stopped, deletes its
     /// folders. The last account is only unlinked: the window always shows
@@ -2646,6 +2680,7 @@ impl App {
 
     /// Initializes a newly created window.
     pub fn attach(&mut self, ctx: &egui::Context) {
+        ctx.set_embed_viewports(false);
         // Texture handles belong to the window's egui context. Keep the
         // underlying pictures and recreate handles for the new window.
         self.call_local_texture = None;
@@ -3924,6 +3959,20 @@ impl App {
                 if older && !messages.is_empty() {
                     conversation.phone_delivered = true;
                 }
+                if !older {
+                    if conversation.initial_loaded || !was_empty {
+                        let now = Instant::now();
+                        for msg in &messages {
+                            if !conversation.messages.iter().any(|m| m.id == msg.id) {
+                                conversation.arrivals.insert(msg.id.clone(), now);
+                            }
+                        }
+                        conversation
+                            .arrivals
+                            .retain(|_, at| at.elapsed().as_secs() < 5);
+                    }
+                    conversation.initial_loaded = true;
+                }
                 conversation.merge(messages, older);
                 if older {
                     conversation.loading_older = false;
@@ -4490,15 +4539,6 @@ impl App {
                 }
             }
             Event::Syncing(syncing) => {
-                if self.syncing && !syncing {
-                    self.toast("History loaded");
-                }
-                if live && !self.syncing && syncing {
-                    self.announcer.say(
-                        crate::announcer::Category::Status,
-                        crate::i18n::gettext(self.locale, "Loading chat history"),
-                    );
-                }
                 self.syncing = syncing;
                 if !syncing {
                     self.sync_percent = None;
@@ -7048,19 +7088,20 @@ impl App {
     fn sync_prefetch(&mut self) {
         let active = self.active;
         for (index, account) in self.accounts.iter_mut().enumerate() {
+            let is_active = index == active;
             let wanted = (
-                account.settings.history_prefetch,
-                (index == active)
-                    .then(|| account.open_chat.clone())
-                    .flatten(),
+                account.settings.history_prefetch
+                    || (account.settings.background_sync && account.syncing),
+                is_active.then(|| account.open_chat.clone()).flatten(),
             );
-            if account.prefetch_sent.as_ref() != Some(&wanted) {
-                account.backend.send(Command::SetHistoryPrefetch {
-                    on: wanted.0,
-                    focused: wanted.1.clone(),
-                });
-                account.prefetch_sent = Some(wanted);
+            if account.prefetch_sent.as_ref() == Some(&wanted) {
+                continue;
             }
+            account.backend.send(Command::SetHistoryPrefetch {
+                on: wanted.0,
+                focused: wanted.1.clone(),
+            });
+            account.prefetch_sent = Some(wanted);
         }
     }
 
@@ -8531,6 +8572,11 @@ impl App {
                 self.pending.clear();
                 self.pending_view_once = false;
                 self.forget_unstaged_pictures();
+            }
+            Action::ManualSync => {
+                if let Some(account) = self.accounts.get(self.active) {
+                    account.backend.send(crate::backend::Command::ManualSync);
+                }
             }
             Action::PlayVoice { message, path } => self.play_voice(message, path),
             Action::PlayVideo { message, path } => self.play_video(message, path),
@@ -10017,6 +10063,12 @@ impl App {
             Action::SwitchAccount(id) => self.switch_account(&id),
             Action::CycleAccount(step) => self.cycle_account(step, Instant::now()),
             Action::AddAccount => self.add_account(),
+            #[cfg(any(test, feature = "demo"))]
+            Action::EnableDebugAccount => self.enable_debug_account(),
+            #[cfg(not(any(test, feature = "demo")))]
+            Action::EnableDebugAccount => {
+                self.toast_error("Debug account requires the demo feature");
+            }
             Action::CancelAddAccount => {
                 // Back to the account the window showed before; leaving an
                 // unlinked new account removes it.
@@ -10376,11 +10428,13 @@ impl App {
             self.window_focused && !self.window_hidden && !self.power.conditions().display_off;
         let active = self.active;
         for (index, account) in self.accounts.iter_mut().enumerate() {
-            let online = looking && index == active;
-            if account.reported_online != Some(online) {
-                account.reported_online = Some(online);
-                account.backend.send(Command::SetOnline(online));
+            let online = (looking && index == active)
+                || (account.settings.background_sync && account.syncing);
+            if account.reported_online == Some(online) {
+                continue;
             }
+            account.reported_online = Some(online);
+            account.backend.send(Command::SetOnline(online));
         }
     }
 
@@ -10418,6 +10472,7 @@ impl App {
         self.tick(ctx);
         self.tick_audio(ctx);
         self.tick_video(ctx);
+        self.tick_debug_account(ctx);
         self.apply_actions(ctx);
         self.sync_chat_export_permission();
         self.sync_prefetch();

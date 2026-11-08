@@ -82,6 +82,8 @@ pub fn respond(app: &mut App) {
                 preview,
             } => {
                 let quoted = quoting.and_then(|id| quote(app, &chat, id));
+                let chat_clone = chat.clone();
+                let text_clone = text.clone();
                 let (content, thumbnail) = match preview {
                     Some(preview) => (
                         Content::Text {
@@ -103,6 +105,8 @@ pub fn respond(app: &mut App) {
                     })
                     .collect();
                 append(app, row);
+                let due = std::time::Instant::now() + std::time::Duration::from_millis(900);
+                app.debug_replies.push((due, chat_clone, text_clone));
             }
             Command::InspectPicture { target, path } => {
                 let size = std::fs::read(&path)
@@ -268,7 +272,12 @@ pub fn respond(app: &mut App) {
                 samples,
                 quoting,
             } => {
-                let path = app.dirs.media_cache_dir().join("tour-voice.ogg");
+                let cache_dir = app.dirs.media_cache_dir();
+                let _ = std::fs::create_dir_all(&cache_dir);
+                let now = crate::util::now();
+                let count = app.conversations.get(&chat).map_or(0, |c| c.messages.len());
+                let id = format!("tour-voice-{count}-{now}");
+                let path = cache_dir.join(format!("{id}.ogg"));
                 let Ok(bytes) = crate::voice::encode(&samples) else {
                     continue;
                 };
@@ -289,9 +298,12 @@ pub fn respond(app: &mut App) {
                         waveform: crate::voice::waveform(&samples),
                     },
                 );
-                row.id = "tour-voice".into();
+                row.id = id;
                 row.quoted = quoting.and_then(|id| quote(app, &chat, id));
                 append(app, row);
+                let due = std::time::Instant::now() + std::time::Duration::from_millis(900);
+                app.debug_replies
+                    .push((due, chat, "Voice note received! 👍".into()));
             }
             Command::React {
                 chat,
@@ -315,6 +327,13 @@ pub fn respond(app: &mut App) {
             }
             // The engine's answers to the call screen's own controls: the
             // call as it now is, as the worker reports it.
+            Command::StartCall { video, .. } => update_call(app, |call| {
+                call.phase = crate::calls::CallPhase::Active;
+                call.started = Some(std::time::Instant::now());
+                call.remote_video = video;
+                call.camera_on = video;
+            }),
+            Command::HangupCall | Command::DeclineCall => {}
             Command::SetCallMuted(muted) => update_call(app, |call| call.muted = muted),
             Command::SetCallCamera(on) => update_call(app, |call| call.camera_on = on),
             Command::AnswerCall => update_call(app, |call| {
@@ -413,10 +432,36 @@ pub(super) fn append(app: &mut App, row: Message) {
             status: row.status,
         });
     }
-    app.conversations
-        .get_mut(&row.chat)
-        .expect("sample chat")
-        .messages
-        .push(row);
+    if let Some(conversation) = app.conversations.get_mut(&row.chat) {
+        conversation
+            .arrivals
+            .insert(row.id.clone(), std::time::Instant::now());
+        conversation.messages.push(row);
+    }
     app.scroll_to_bottom = true;
+}
+
+pub fn tick(app: &mut App, ctx: &egui::Context) {
+    respond(app);
+    let now = std::time::Instant::now();
+    let mut i = 0;
+    while i < app.debug_replies.len() {
+        if app.debug_replies[i].0 <= now {
+            let (_, chat, user_text) = app.debug_replies.remove(i);
+            let count = app.conversations.get(&chat).map_or(0, |c| c.messages.len());
+            let reply_text = format!("Reply to \"{user_text}\"");
+            let row = super::super::message(
+                &chat,
+                &format!("debug-reply-{count}"),
+                false,
+                crate::util::now(),
+                Content::text(reply_text),
+            );
+            append(app, row);
+            ctx.request_repaint();
+        } else {
+            ctx.request_repaint_after(std::time::Duration::from_millis(50));
+            i += 1;
+        }
+    }
 }

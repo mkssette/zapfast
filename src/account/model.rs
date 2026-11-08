@@ -9,6 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::time::Instant;
 
+use super::wallpaper::resolve_wallpaper_path;
 use crate::app::{AttachmentDraft, ComposerMention, Conversation};
 use crate::backend::{Backend, LinkStatus, Waker};
 use crate::model::{
@@ -372,29 +373,5 @@ impl Account {
         if let Err(error) = self.settings.save_to(files, &self.dirs.settings_file()) {
             log::warn!("could not save account settings: {error}");
         }
-    }
-}
-
-fn resolve_wallpaper_path(dirs: &AccountDirs, settings: &mut AccountSettings) {
-    if settings
-        .wallpaper_image
-        .as_ref()
-        .is_some_and(|path| path.exists())
-    {
-        return;
-    }
-    for extension in ["jpg", "png", "webp", "gif"] {
-        let path = dirs.wallpaper_file(extension);
-        if path.exists() {
-            settings.wallpaper_image = Some(path);
-            return;
-        }
-    }
-    if settings
-        .wallpaper_image
-        .as_ref()
-        .is_some_and(|path| !path.exists())
-    {
-        settings.wallpaper_image = None;
     }
 }

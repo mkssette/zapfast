@@ -25,6 +25,9 @@ struct Cli {
     #[arg(long)]
     demo: bool,
 
+    #[arg(long, alias = "debug-account")]
+    debug_account: bool,
+
     /// Prepare an offline, scripted tour. Press Space to play or replay it.
     #[cfg(feature = "demo")]
     #[arg(long, conflicts_with = "demo_page")]
@@ -363,6 +366,9 @@ fn run() -> eframe::Result<()> {
         app::App::new(&waker, dirs, settings, app::AppOptions { tray: true })
             .map_err(|error| eframe::Error::AppCreation(error.into()))?
     };
+    if cli.debug_account || demo {
+        app.debug_account = true;
+    }
     if cli.verbose {
         app.update_arguments.push("--verbose".into());
     }

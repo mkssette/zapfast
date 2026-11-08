@@ -2,9 +2,9 @@
   <img src="docs/assets/images/logo.svg" alt="ZapFast logo" width="88" height="88">
 </p>
 
-<h1 align="center">ZapFast</h1>
+<h1 align="center">ZapFast Unvibe</h1>
 
-<p align="center"><strong>WhatsApp, native and fast.</strong><br>A lightweight WhatsApp app for Linux, macOS, and Windows.</p>
+<p align="center"><strong>WhatsApp, native, fast, and smooth.</strong><br>A lightweight native WhatsApp desktop app for Linux, macOS, and Windows.<br><em>An enhanced fork of <a href="https://github.com/crmne/zapfast">ZapFast</a> by Carmine Paolino.</em></p>
 
 <p align="center">
   <a href="https://zapfast.rocks/download/"><strong>Download</strong></a> ·
@@ -96,7 +96,7 @@ The complete guide lives at **[zapfast.rocks](https://zapfast.rocks/)**.
 | Make your own theme | [Making a theme](https://zapfast.rocks/themes/) |
 | Understand what stays on this computer | [How it links](https://zapfast.rocks/how-it-links/) |
 | Understand account risk | [Account safety](https://zapfast.rocks/what-is-zapfast/#account-safety) |
-| Report a bug or propose a feature | Read [Contributing](CONTRIBUTING.md), then use the [issue forms](https://github.com/crmne/zapfast/issues/new/choose). |
+| Report a bug or propose a feature | Read [Contributing](CONTRIBUTING.md), then use the [issue tracker](https://github.com/mkssette/zapfast-unvibe/issues). |
 
 ## Contributing
 
@@ -107,8 +107,7 @@ request. To look at the interface without a WhatsApp account, run:
 cargo run --features demo -- --demo
 ```
 
-[AGENTS.md](AGENTS.md) describes the architecture, [DEMO.md](DEMO.md) the
-demo pages, screenshots, and recorded tours, and
+[DEMO.md](DEMO.md) describes the demo pages, screenshots, and recorded tours, and
 [PACKAGING.md](PACKAGING.md) releases and packages.
 
 Native notifications use Fastframe on Linux, macOS and Windows. ZapFast keeps
@@ -125,7 +124,8 @@ is ZapFast's sibling. Both are built on
 
 ## Acknowledgements
 
-ZapFast uses [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust),
+ZapFast Unvibe is an enhanced fork of [ZapFast](https://github.com/crmne/zapfast) by Carmine Paolino.
+It uses [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust),
 [egui](https://www.egui.rs), [fastframe](https://fastframe.dev), the
 [Inter](https://rsms.me/inter/) typeface and Noto Color Emoji (OFL), and
 [Lucide](https://lucide.dev) icons (ISC), also used for the chat wallpaper
@@ -138,12 +138,3 @@ could get an account suspended. Use it at your own risk. WhatsApp is a
 trademark of WhatsApp LLC.
 
 Licensed under the [MIT License](LICENSE).
-
-## Star history
-
-<a href="https://www.star-history.com/?repos=crmne%2Fzapfast&amp;type=date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=crmne/zapfast&amp;type=date&amp;theme=dark">
-    <img alt="ZapFast GitHub stars over time" src="https://api.star-history.com/chart?repos=crmne/zapfast&amp;type=date">
-  </picture>
-</a>

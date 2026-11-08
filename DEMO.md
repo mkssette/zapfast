@@ -1,8 +1,8 @@
 # Developing with the demo
 
 The `demo` feature builds ZapFast with offline sample chats, for development,
-screenshots, and recorded tours. `AGENTS.md` describes the architecture and
-the rules for changes; `CONTRIBUTING.md` lists the checks.
+screenshots, and recorded tours. `CONTRIBUTING.md` describes the project
+guidelines and lists the checks.
 
 ```sh
 cargo run --features demo -- --demo            # sample chats, no connection

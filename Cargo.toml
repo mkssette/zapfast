@@ -4,9 +4,9 @@ version = "0.21.1"
 edition = "2024"
 rust-version = "1.98"
 license = "MIT"
-description = "A native WhatsApp client built with Rust and egui"
+description = "A native WhatsApp client built with Rust and egui (Unvibe fork)"
 homepage = "https://zapfast.rocks"
-repository = "https://github.com/crmne/zapfast"
+repository = "https://github.com/mkssette/zapfast-unvibe"
 keywords = ["whatsapp", "chat", "egui", "messaging"]
 categories = ["gui"]
 

@@ -17,4 +17,4 @@ real chats), in light and dark themes when colours or layout change.
 - [ ] I ran formatting, Clippy, and the relevant tests locally.
 - [ ] I updated documentation for user-visible behaviour, settings, files, or network access.
 - [ ] I did not commit screenshots or other media to the repository.
-- [ ] I understand and take responsibility for every submitted line, including AI-assisted code.
+- [ ] I understand and take responsibility for every submitted line.

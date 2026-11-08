@@ -54,30 +54,16 @@ release status stated. Reopen the issue if it persists after updating.
    must keep compiling.
 5. **Small dependency surface.** Reuse the standard library and existing
    crates where practical. A new dependency needs a concrete benefit worth its
-   build time, binary size, maintenance, and security cost. Crates come from
-   crates.io or from repositories under `github.com/crmne/`; never vendor
-   dependency source or point a dependency at another fork. To fix a
-   dependency, send the fix upstream and ask the maintainer to carry it in a
-   crmne fork until a release includes it. The maintainer has explicitly
-   approved pinned commits from the official `github.com/oxidezap/whatsapp-rust`
-   repository once our carried fixes have merged upstream. CI fails on any
-   other source.
+   build time, binary size, maintenance, and security cost.
 6. **Private data.** The archive is personal data. Never log message contents,
    phone numbers, keys, or QR payloads.
 
 ## Pull requests
 
-Keep each pull request to one change. A pull request that bundles unrelated
-fixes or features will be closed with a request to split it. Explain why the
-change belongs in ZapFast, what changed, and how you tested it. Avoid unrelated
-formatting, refactors, generated prose, and large mechanical rewrites.
-
-`main` has a linear history. Outside pull requests are squash-merged into one
-focused commit with contributor credit; merge commits are not accepted. A
-maintainer may push fixes to your branch before merging it.
-
-The same rules apply to hand-written and AI-assisted changes. The author must
-understand every line and answer review comments with specific reasoning.
+Keep each pull request focused. Explain what changed, why the change belongs in
+the project, and how you tested it. Avoid unrelated formatting, refactors, or
+large mechanical rewrites. The author must understand every line and answer
+review comments with specific reasoning.
 
 Code changes should include tests for behaviour that can regress. User-visible
 behaviour, settings, files, or network access must be documented in the same
@@ -129,8 +115,6 @@ provides the complete development environment. When changing `Cargo.lock` or
 `flake.nix`, also verify `nix build` on a Nix host or wait for the Nix CI job.
 Passing CI is required, but does not replace review for correctness, product
 fit, maintainability, or security.
-
-`AGENTS.md` describes the architecture and conventions in more detail.
 
 By contributing, you agree that your contribution is licensed under the
 project's MIT License.

@@ -34,7 +34,7 @@ WhatsApp only: no other networks or protocols (Matrix, Signal, Telegram) and no 
 No automation: no bots, MCP server, or interface for other programs to read or
 send messages, and no scheduled, bulk or automatic replies.
 Several WhatsApp accounts may be linked locally. Current feature limitations
-are not permanent exclusions; see the product boundaries in [AGENTS.md](AGENTS.md#product-boundaries).
+are not permanent exclusions.
 Avoid decorative dashboards and extra nested cards inside message bubbles.
 Retain keyboard operation, zoom, text selection, and light and dark themes.
 No additional accessibility certification target is specified by the project.

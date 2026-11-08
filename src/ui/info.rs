@@ -75,7 +75,11 @@ pub fn release_thumbnails(app: &mut App, ctx: &egui::Context) {
 pub fn show(app: &mut App, ui: &mut egui::Ui) -> Option<Rect> {
     let anim_id = egui::Id::new("chat-info-pane-anim");
     let is_open = app.info_visible();
-    let t = ui.ctx().animate_bool_with_time(anim_id, is_open, 0.24);
+    let t = if cfg!(test) {
+        if is_open { 1.0 } else { 0.0 }
+    } else {
+        ui.ctx().animate_bool_with_time(anim_id, is_open, 0.24)
+    };
     if !is_open && t <= 0.001 {
         ui.ctx().data_mut(|data| data.remove::<bool>(docked_id()));
         ui.ctx().data_mut(|data| {
@@ -121,14 +125,24 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) -> Option<Rect> {
 pub fn show_overlay(app: &mut App, ctx: &egui::Context, region: Rect) {
     let anim_id = egui::Id::new("chat-info-pane-anim");
     let is_open = app.info_visible();
-    let t = ctx.animate_bool_with_time(anim_id, is_open, 0.24);
+    let t = if cfg!(test) {
+        if is_open { 1.0 } else { 0.0 }
+    } else {
+        ctx.animate_bool_with_time(anim_id, is_open, 0.24)
+    };
     if !is_open && t <= 0.001 {
         return;
     }
     let width = region.width();
-    pane::overlay(app, ctx, "chat-info-overlay", width, region, t, |app, ui| {
-        contents(app, ui, true)
-    });
+    pane::overlay(
+        app,
+        ctx,
+        "chat-info-overlay",
+        width,
+        region,
+        t,
+        |app, ui| contents(app, ui, true),
+    );
     ctx.data_mut(|data| data.insert_temp(docked_id(), false));
 }
 

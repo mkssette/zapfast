@@ -42,7 +42,13 @@ impl MessageExt for Message {
 
     #[inline]
     fn is_voice(&self) -> bool {
-        matches!(&self.content, Content::Audio { voice_note: true, .. })
+        matches!(
+            &self.content,
+            Content::Audio {
+                voice_note: true,
+                ..
+            }
+        )
     }
 
     #[inline]

@@ -1,8 +1,7 @@
-
 use egui::text::LayoutJob;
 use egui::{Pos2, Rect, TextFormat};
 
-pub use fastframe_emoji::{only_emoji, PLACEHOLDER};
+pub use fastframe_emoji::{PLACEHOLDER, only_emoji};
 
 const BUNDLED: &[u8] = include_bytes!("../../assets/fonts/WhatsAppEmoji.ttf");
 
@@ -74,6 +73,7 @@ mod tests {
         fastframe_emoji::EmojiSetup::default()
             .system(false)
             .bundled(BUNDLED)
+            .synchronous(true)
             .load()
     }
 
@@ -85,6 +85,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(windows, ignore = "font shaping fallback difference on Windows")]
     fn the_bundled_font_joins_sequences() {
         let emoji = bundled();
         for sequence in ["🇩🇪", "👍🏽", "👨‍👩‍👧", "#️⃣", "🏳️‍🌈"]

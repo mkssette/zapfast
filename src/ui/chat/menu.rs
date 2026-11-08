@@ -211,7 +211,10 @@ pub(crate) fn list_menu(
 }
 
 /// Quick reactions plus our current reaction when needed.
-pub(crate) fn quick_reactions<'a>(message: &'a Message, preferred: &'a [(String, u32)]) -> Vec<&'a str> {
+pub(crate) fn quick_reactions<'a>(
+    message: &'a Message,
+    preferred: &'a [(String, u32)],
+) -> Vec<&'a str> {
     let mut list = Vec::new();
     for emoji in preferred
         .iter()
@@ -301,10 +304,7 @@ fn reaction_pill_frame(palette: &Palette) -> Frame {
 
 pub(crate) fn draw_context_separator(ui: &mut egui::Ui, palette: &Palette, height: f32) {
     let (_, border, _) = floating_menu_colors(palette);
-    let (rect, _) = ui.allocate_exact_size(
-        vec2(ui.available_width(), height),
-        Sense::hover(),
-    );
+    let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), height), Sense::hover());
     ui.painter().hline(
         rect.x_range().shrink(10.0),
         rect.center().y,
@@ -360,18 +360,13 @@ pub(crate) fn draw_context_row(
         } else {
             palette.text
         };
-        let icon_rect = Rect::from_center_size(
-            pos2(rect.left() + 20.0, rect.center().y),
-            Vec2::splat(18.0),
-        );
+        let icon_rect =
+            Rect::from_center_size(pos2(rect.left() + 20.0, rect.center().y), Vec2::splat(18.0));
         icon.image(icon_color, 18.0).paint_at(ui, icon_rect);
 
         let text_x = rect.left() + 42.0;
-        let mut job = egui::text::LayoutJob::simple_singleline(
-            label.to_owned(),
-            theme::regular(14.5),
-            color,
-        );
+        let mut job =
+            egui::text::LayoutJob::simple_singleline(label.to_owned(), theme::regular(14.5), color);
         job.wrap = egui::text::TextWrapping {
             max_width: (rect.right() - 12.0 - text_x).max(0.0),
             max_rows: 1,
@@ -473,436 +468,436 @@ pub(crate) fn context_menu(
             return None;
         }
 
-    let total_width = ui.available_width();
-    let (_, _, hover_fill) = floating_menu_colors(&palette);
-    let mine = own_reaction(message);
+        let total_width = ui.available_width();
+        let (_, _, hover_fill) = floating_menu_colors(&palette);
+        let mine = own_reaction(message);
 
-    reaction_pill_frame(&palette).show(ui, |ui| {
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 2.0;
-            for emoji in quick_reactions(message, view.reaction_emoji) {
-                let chosen = mine == Some(emoji);
+        reaction_pill_frame(&palette).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 2.0;
+                for emoji in quick_reactions(message, view.reaction_emoji) {
+                    let chosen = mine == Some(emoji);
+                    let (rect, response) =
+                        ui.allocate_exact_size(Vec2::splat(34.0), Sense::click());
+                    response.widget_info(|| {
+                        egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), emoji)
+                    });
+                    theme::focus_outline(ui, response.id, rect, 17.0);
+                    let hovered = response.hovered();
+                    if chosen {
+                        ui.painter()
+                            .circle_filled(rect.center(), 17.0, palette.surface_active);
+                        ui.painter().circle_stroke(
+                            rect.center(),
+                            16.0,
+                            Stroke::new(1.5, palette.accent),
+                        );
+                    } else if hovered {
+                        ui.painter().circle_filled(rect.center(), 17.0, hover_fill);
+                    }
+                    let font_size = if hovered { 23.0 } else { 21.0 };
+                    let line =
+                        widgets::line(ui, emoji, theme::regular(font_size), palette.text, 40.0, 1);
+                    line.paint(ui, rect.center() - line.size() * 0.5, palette.text);
+                    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+                    let response = if chosen {
+                        response.on_hover_text(
+                            crate::i18n::gettext(view.locale, "Remove your reaction").into_owned(),
+                        )
+                    } else {
+                        response
+                    };
+                    if response.clicked() {
+                        actions.push(Action::React {
+                            chat: chat.clone(),
+                            message: message.id.clone(),
+                            emoji: reaction_choice(mine, emoji),
+                        });
+                        ui.close();
+                    }
+                }
                 let (rect, response) = ui.allocate_exact_size(Vec2::splat(34.0), Sense::click());
+                let more = crate::i18n::gettext(view.locale, "React with any emoji").into_owned();
                 response.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), emoji)
+                    egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), &more)
                 });
                 theme::focus_outline(ui, response.id, rect, 17.0);
-                let hovered = response.hovered();
-                if chosen {
-                    ui.painter()
-                        .circle_filled(rect.center(), 17.0, palette.surface_active);
-                    ui.painter().circle_stroke(
-                        rect.center(),
-                        16.0,
-                        Stroke::new(1.5, palette.accent),
-                    );
-                } else if hovered {
-                    ui.painter().circle_filled(rect.center(), 17.0, hover_fill);
+                if ui.is_rect_visible(rect) {
+                    let hovered = response.hovered();
+                    if hovered {
+                        ui.painter().circle_filled(rect.center(), 17.0, hover_fill);
+                    }
+                    let plus_color = if hovered || palette.dark {
+                        palette.text
+                    } else {
+                        palette.secondary
+                    };
+                    theme::paint_icon(ui, Icon::Plus, rect, 18.0, plus_color);
                 }
-                let font_size = if hovered { 23.0 } else { 21.0 };
-                let line =
-                    widgets::line(ui, emoji, theme::regular(font_size), palette.text, 40.0, 1);
-                line.paint(ui, rect.center() - line.size() * 0.5, palette.text);
-                let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
-                let response = if chosen {
-                    response.on_hover_text(
-                        crate::i18n::gettext(view.locale, "Remove your reaction").into_owned(),
-                    )
-                } else {
-                    response
-                };
-                if response.clicked() {
-                    actions.push(Action::React {
+                if response
+                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                    .on_hover_text(more)
+                    .clicked()
+                {
+                    actions.push(Action::OpenReactionPicker {
                         chat: chat.clone(),
                         message: message.id.clone(),
-                        emoji: reaction_choice(mine, emoji),
+                        beside_menu: true,
+                        from_list: false,
                     });
-                    ui.close();
                 }
-            }
-            let (rect, response) = ui.allocate_exact_size(Vec2::splat(34.0), Sense::click());
-            let more = crate::i18n::gettext(view.locale, "React with any emoji").into_owned();
-            response.widget_info(|| {
-                egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), &more)
             });
-            theme::focus_outline(ui, response.id, rect, 17.0);
-            if ui.is_rect_visible(rect) {
-                let hovered = response.hovered();
-                if hovered {
-                    ui.painter().circle_filled(rect.center(), 17.0, hover_fill);
-                }
-                let plus_color = if hovered || palette.dark {
-                    palette.text
-                } else {
-                    palette.secondary
-                };
-                theme::paint_icon(ui, Icon::Plus, rect, 18.0, plus_color);
-            }
-            if response
-                .on_hover_cursor(egui::CursorIcon::PointingHand)
-                .on_hover_text(more)
-                .clicked()
-            {
-                actions.push(Action::OpenReactionPicker {
-                    chat: chat.clone(),
-                    message: message.id.clone(),
-                    beside_menu: true,
-                    from_list: false,
-                });
-            }
         });
-    });
 
-    ui.add_space(REACTION_PILL_GAP);
+        ui.add_space(REACTION_PILL_GAP);
 
-    let keys_menu = ui
-        .ctx()
-        .data(|data| data.get_temp::<bool>(keys_menu_id(ui.layer_id().id)))
-        .unwrap_or(false);
-    let entries = if keys_menu {
-        inner_entries(view, message)
-    } else {
-        Vec::new()
-    };
-    let card_width = if entries.is_empty() {
-        menu_card_width(ui, view.locale).min(total_width)
-    } else {
-        total_width
-    };
-    let card_indent = ((total_width - card_width) * 0.5).max(0.0);
+        let keys_menu = ui
+            .ctx()
+            .data(|data| data.get_temp::<bool>(keys_menu_id(ui.layer_id().id)))
+            .unwrap_or(false);
+        let entries = if keys_menu {
+            inner_entries(view, message)
+        } else {
+            Vec::new()
+        };
+        let card_width = if entries.is_empty() {
+            menu_card_width(ui, view.locale).min(total_width)
+        } else {
+            total_width
+        };
+        let card_indent = ((total_width - card_width) * 0.5).max(0.0);
 
-    let mut first = None;
-    ui.horizontal(|ui| {
-        if card_indent > 0.5 {
-            ui.add_space(card_indent);
-        }
-        menu_card_frame(&palette).show(ui, |ui| {
-            let inner_w = (card_width - 14.0).max(160.0);
-            ui.set_width(inner_w);
-            ui.vertical(|ui| {
-                ui.spacing_mut().item_spacing.y = 0.0;
+        let mut first = None;
+        ui.horizontal(|ui| {
+            if card_indent > 0.5 {
+                ui.add_space(card_indent);
+            }
+            menu_card_frame(&palette).show(ui, |ui| {
+                let inner_w = (card_width - 14.0).max(160.0);
+                ui.set_width(inner_w);
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing.y = 0.0;
 
-                let draw_item =
-                    |ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool, first: &mut Option<egui::Id>| {
-                        let response = draw_context_row(
+                    let draw_item =
+                        |ui: &mut egui::Ui,
+                         icon: Icon,
+                         label: &str,
+                         enabled: bool,
+                         first: &mut Option<egui::Id>| {
+                            let response = draw_context_row(
+                                ui, &palette, icon, label, label, enabled, enabled, row_height,
+                                first,
+                            );
+                            enabled && response.clicked()
+                        };
+
+                    if can_reply(&message.content)
+                        && draw_item(
                             ui,
-                            &palette,
-                            icon,
-                            label,
-                            label,
-                            enabled,
-                            enabled,
-                            row_height,
-                            first,
-                        );
-                        enabled && response.clicked()
-                    };
-
-                if can_reply(&message.content)
-                    && draw_item(
-                        ui,
-                        Icon::Reply,
-                        &crate::i18n::gettext(view.locale, "Reply"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    open_if_list(origin, chat, &message.id, actions);
-                    actions.push(Action::Reply(message.id.clone()));
-                }
-                if !matches!(origin, MenuOrigin::List)
-                    && message.private_reply_recipient().is_some()
-                    && draw_item(
-                        ui,
-                        Icon::Reply,
-                        &crate::i18n::gettext(view.locale, "Reply privately"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(Action::ReplyPrivately {
-                        chat: chat.clone(),
-                        message: message.id.clone(),
-                    });
-                }
-                if let Some(text) = copyable_text(&message.content)
-                    && draw_item(
-                        ui,
-                        Icon::Copy,
-                        &crate::i18n::gettext(view.locale, "Copy text"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    let mentions = mentions_of(view, message);
-                    actions.push(Action::CopyText(markup::plain(&text, &mentions)));
-                }
-                if matches!(message.content, Content::Image { .. })
-                    && let Some(media) = message.content.media()
-                    && let Some(path) = &media.path
-                    && draw_item(
-                        ui,
-                        Icon::Copy,
-                        &crate::i18n::gettext(view.locale, "Copy image"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(Action::CopyImage(path.clone()));
-                }
-                let selectable = crate::app::can_select(&message.content);
-                if selectable
-                    && draw_item(
-                        ui,
-                        Icon::Forward,
-                        &crate::i18n::gettext(view.locale, "Forward"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(forward_action(chat, &message.id));
-                }
-                if !matches!(message.content, Content::Revoked) {
-                    let pinned = view.pins.is_some_and(|ids| ids.contains(&message.id));
-                    let pin_label = if pinned {
-                        crate::i18n::gettext(view.locale, "Unpin message")
-                    } else {
-                        crate::i18n::gettext(view.locale, "Pin message")
-                    };
-                    if draw_item(ui, Icon::Pin, &pin_label, true, &mut first) {
-                        actions.push(Action::SetMessagePinned {
+                            Icon::Reply,
+                            &crate::i18n::gettext(view.locale, "Reply"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        open_if_list(origin, chat, &message.id, actions);
+                        actions.push(Action::Reply(message.id.clone()));
+                    }
+                    if !matches!(origin, MenuOrigin::List)
+                        && message.private_reply_recipient().is_some()
+                        && draw_item(
+                            ui,
+                            Icon::Reply,
+                            &crate::i18n::gettext(view.locale, "Reply privately"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(Action::ReplyPrivately {
                             chat: chat.clone(),
                             message: message.id.clone(),
-                            pinned: !pinned,
                         });
                     }
-                    let starred = view.starred.is_some_and(|ids| ids.contains(&message.id));
-                    let star_label = if starred {
-                        crate::i18n::gettext(view.locale, "Unstar")
-                    } else {
-                        crate::i18n::gettext(view.locale, "Star")
-                    };
-                    if draw_item(ui, Icon::Star, &star_label, true, &mut first) {
-                        actions.push(Action::SetStar {
+                    if let Some(text) = copyable_text(&message.content)
+                        && draw_item(
+                            ui,
+                            Icon::Copy,
+                            &crate::i18n::gettext(view.locale, "Copy text"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        let mentions = mentions_of(view, message);
+                        actions.push(Action::CopyText(markup::plain(&text, &mentions)));
+                    }
+                    if matches!(message.content, Content::Image { .. })
+                        && let Some(media) = message.content.media()
+                        && let Some(path) = &media.path
+                        && draw_item(
+                            ui,
+                            Icon::Copy,
+                            &crate::i18n::gettext(view.locale, "Copy image"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(Action::CopyImage(path.clone()));
+                    }
+                    let selectable = crate::app::can_select(&message.content);
+                    if selectable
+                        && draw_item(
+                            ui,
+                            Icon::Forward,
+                            &crate::i18n::gettext(view.locale, "Forward"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(forward_action(chat, &message.id));
+                    }
+                    if !matches!(message.content, Content::Revoked) {
+                        let pinned = view.pins.is_some_and(|ids| ids.contains(&message.id));
+                        let pin_label = if pinned {
+                            crate::i18n::gettext(view.locale, "Unpin message")
+                        } else {
+                            crate::i18n::gettext(view.locale, "Pin message")
+                        };
+                        if draw_item(ui, Icon::Pin, &pin_label, true, &mut first) {
+                            actions.push(Action::SetMessagePinned {
+                                chat: chat.clone(),
+                                message: message.id.clone(),
+                                pinned: !pinned,
+                            });
+                        }
+                        let starred = view.starred.is_some_and(|ids| ids.contains(&message.id));
+                        let star_label = if starred {
+                            crate::i18n::gettext(view.locale, "Unstar")
+                        } else {
+                            crate::i18n::gettext(view.locale, "Star")
+                        };
+                        if draw_item(ui, Icon::Star, &star_label, true, &mut first) {
+                            actions.push(Action::SetStar {
+                                chat: chat.clone(),
+                                message: message.id.clone(),
+                                starred: !starred,
+                            });
+                        }
+                    }
+                    let age = view.now - message.timestamp;
+                    if message.from_me
+                        && matches!(message.content, Content::Text { .. })
+                        && age <= crate::app::EDIT_WINDOW.as_secs() as i64
+                        && draw_item(
+                            ui,
+                            Icon::Pencil,
+                            &crate::i18n::gettext(view.locale, "Edit"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        open_if_list(origin, chat, &message.id, actions);
+                        actions.push(Action::Edit(message.id.clone()));
+                    }
+                    if let Some(path) = viewer_file(message)
+                        && draw_item(
+                            ui,
+                            Icon::Maximize,
+                            &crate::i18n::gettext(view.locale, "Open in the viewer"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(Action::PreviewImage {
+                            path: path.to_owned(),
                             chat: chat.clone(),
                             message: message.id.clone(),
-                            starred: !starred,
+                            card: None,
                         });
                     }
-                }
-                let age = view.now - message.timestamp;
-                if message.from_me
-                    && matches!(message.content, Content::Text { .. })
-                    && age <= crate::app::EDIT_WINDOW.as_secs() as i64
-                    && draw_item(
-                        ui,
-                        Icon::Pencil,
-                        &crate::i18n::gettext(view.locale, "Edit"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    open_if_list(origin, chat, &message.id, actions);
-                    actions.push(Action::Edit(message.id.clone()));
-                }
-                if let Some(path) = viewer_file(message)
-                    && draw_item(
-                        ui,
-                        Icon::Maximize,
-                        &crate::i18n::gettext(view.locale, "Open in the viewer"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(Action::PreviewImage {
-                        path: path.to_owned(),
-                        chat: chat.clone(),
-                        message: message.id.clone(),
-                        card: None,
-                    });
-                }
-                if let Content::Sticker { media, .. } = &message.content
-                    && let Some(path) = &media.path
-                    && path.extension().is_none_or(|extension| extension != "was")
-                    && draw_item(
-                        ui,
-                        Icon::Star,
-                        &crate::i18n::gettext(view.locale, "Add to favorites"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(Action::SaveSticker(path.clone()));
-                }
-                if let Some(media) = message.content.media() {
-                    match &media.path {
-                        Some(path) => {
-                            let open =
-                                if matches!(message.content, Content::Video { gif: false, .. }) {
-                                    crate::i18n::gettext(view.locale, "Open in system player")
-                                } else {
-                                    crate::i18n::gettext(view.locale, "Open file")
-                                };
-                            if draw_item(ui, Icon::ExternalLink, &open, true, &mut first) {
-                                actions.push(Action::OpenFile(path.clone()));
-                            }
-                            if draw_item(
-                                ui,
-                                Icon::Download,
-                                &crate::i18n::gettext(view.locale, "Save as…"),
-                                true,
-                                &mut first,
-                            ) {
-                                actions.push(Action::SaveAttachmentAs {
-                                    path: path.clone(),
-                                    name: attachment_name(&message.content, path),
-                                });
-                            }
-                            if let Some(folder) = path.parent()
-                                && draw_item(
+                    if let Content::Sticker { media, .. } = &message.content
+                        && let Some(path) = &media.path
+                        && path.extension().is_none_or(|extension| extension != "was")
+                        && draw_item(
+                            ui,
+                            Icon::Star,
+                            &crate::i18n::gettext(view.locale, "Add to favorites"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(Action::SaveSticker(path.clone()));
+                    }
+                    if let Some(media) = message.content.media() {
+                        match &media.path {
+                            Some(path) => {
+                                let open =
+                                    if matches!(message.content, Content::Video { gif: false, .. })
+                                    {
+                                        crate::i18n::gettext(view.locale, "Open in system player")
+                                    } else {
+                                        crate::i18n::gettext(view.locale, "Open file")
+                                    };
+                                if draw_item(ui, Icon::ExternalLink, &open, true, &mut first) {
+                                    actions.push(Action::OpenFile(path.clone()));
+                                }
+                                if draw_item(
                                     ui,
-                                    Icon::FileText,
-                                    &crate::i18n::gettext(view.locale, "Show in folder"),
+                                    Icon::Download,
+                                    &crate::i18n::gettext(view.locale, "Save as…"),
                                     true,
                                     &mut first,
-                                )
-                            {
-                                actions.push(Action::OpenFolder(folder.to_path_buf()));
+                                ) {
+                                    actions.push(Action::SaveAttachmentAs {
+                                        path: path.clone(),
+                                        name: attachment_name(&message.content, path),
+                                    });
+                                }
+                                if let Some(folder) = path.parent()
+                                    && draw_item(
+                                        ui,
+                                        Icon::FileText,
+                                        &crate::i18n::gettext(view.locale, "Show in folder"),
+                                        true,
+                                        &mut first,
+                                    )
+                                {
+                                    actions.push(Action::OpenFolder(folder.to_path_buf()));
+                                }
                             }
-                        }
-                        None => {
-                            let downloading = matches!(media.state, MediaState::Downloading);
-                            let label = if downloading {
-                                crate::i18n::gettext(view.locale, "Downloading…")
-                            } else {
-                                crate::i18n::gettext(view.locale, "Download")
-                            };
-                            if draw_item(ui, Icon::Download, &label, !downloading, &mut first) {
-                                actions.push(Action::Download {
-                                    manual: true,
-                                    card: None,
-                                    chat: chat.clone(),
-                                    message: message.id.clone(),
-                                });
+                            None => {
+                                let downloading = matches!(media.state, MediaState::Downloading);
+                                let label = if downloading {
+                                    crate::i18n::gettext(view.locale, "Downloading…")
+                                } else {
+                                    crate::i18n::gettext(view.locale, "Download")
+                                };
+                                if draw_item(ui, Icon::Download, &label, !downloading, &mut first) {
+                                    actions.push(Action::Download {
+                                        manual: true,
+                                        card: None,
+                                        chat: chat.clone(),
+                                        message: message.id.clone(),
+                                    });
+                                }
                             }
                         }
                     }
-                }
-                if let Content::Audio { media, .. } = &message.content
-                    && media.path.is_some()
-                {
-                    speed_menu_row(ui, view, message, actions);
-                }
-                if selectable
-                    && draw_item(
-                        ui,
-                        Icon::Check,
-                        &crate::i18n::gettext(view.locale, "Select"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    open_if_list(origin, chat, &message.id, actions);
-                    actions.push(Action::SelectMessage(message.id.clone()));
-                }
-                if has_message_info(message)
-                    && draw_item(
-                        ui,
-                        Icon::Info,
-                        &crate::i18n::gettext(view.locale, "Message info"),
-                        true,
-                        &mut first,
-                    )
-                {
-                    actions.push(Action::ShowDialog(Dialog::MessageInfo {
-                        chat: chat.clone(),
-                        message: message.id.clone(),
-                    }));
-                }
-
-                if !entries.is_empty() {
-                    draw_context_separator(ui, &palette, sep_height);
-                    for entry in entries {
-                        let accessible = match entry.hint {
-                            Some(hint) if !entry.enabled => crate::a11y::fill(
-                                &crate::i18n::gettext(
-                                    view.locale,
-                                    "{option}, unavailable: {reason}",
-                                ),
-                                &[
-                                    ("option", &entry.label),
-                                    ("reason", &hint.said(view.locale)),
-                                ],
-                            ),
-                            _ => entry.label.clone(),
-                        };
-                        let response = draw_context_row(
+                    if let Content::Audio { media, .. } = &message.content
+                        && media.path.is_some()
+                    {
+                        speed_menu_row(ui, view, message, actions);
+                    }
+                    if selectable
+                        && draw_item(
                             ui,
-                            &palette,
-                            entry.icon,
-                            &entry.label,
-                            &accessible,
-                            entry.enabled,
-                            entry.enabled,
-                            row_height,
+                            Icon::Check,
+                            &crate::i18n::gettext(view.locale, "Select"),
+                            true,
                             &mut first,
-                        );
-                        let clicked = response.clicked();
-                        if let Some(hint) = entry.hint {
-                            response.on_hover_text(hint.shown());
-                        }
-                        if clicked && let Some(action) = entry.action {
-                            actions.push(action);
+                        )
+                    {
+                        open_if_list(origin, chat, &message.id, actions);
+                        actions.push(Action::SelectMessage(message.id.clone()));
+                    }
+                    if has_message_info(message)
+                        && draw_item(
+                            ui,
+                            Icon::Info,
+                            &crate::i18n::gettext(view.locale, "Message info"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(Action::ShowDialog(Dialog::MessageInfo {
+                            chat: chat.clone(),
+                            message: message.id.clone(),
+                        }));
+                    }
+
+                    if !entries.is_empty() {
+                        draw_context_separator(ui, &palette, sep_height);
+                        for entry in entries {
+                            let accessible = match entry.hint {
+                                Some(hint) if !entry.enabled => crate::a11y::fill(
+                                    &crate::i18n::gettext(
+                                        view.locale,
+                                        "{option}, unavailable: {reason}",
+                                    ),
+                                    &[
+                                        ("option", &entry.label),
+                                        ("reason", &hint.said(view.locale)),
+                                    ],
+                                ),
+                                _ => entry.label.clone(),
+                            };
+                            let response = draw_context_row(
+                                ui,
+                                &palette,
+                                entry.icon,
+                                &entry.label,
+                                &accessible,
+                                entry.enabled,
+                                entry.enabled,
+                                row_height,
+                                &mut first,
+                            );
+                            let clicked = response.clicked();
+                            if let Some(hint) = entry.hint {
+                                response.on_hover_text(hint.shown());
+                            }
+                            if clicked && let Some(action) = entry.action {
+                                actions.push(action);
+                            }
                         }
                     }
-                }
 
-                draw_context_separator(ui, &palette, sep_height);
+                    draw_context_separator(ui, &palette, sep_height);
 
-                if revoke_blocker(message, view.now).is_none()
-                    && draw_item(
+                    if revoke_blocker(message, view.now).is_none()
+                        && draw_item(
+                            ui,
+                            Icon::Trash,
+                            &crate::i18n::gettext(view.locale, "Delete for everyone"),
+                            true,
+                            &mut first,
+                        )
+                    {
+                        actions.push(delete_for_everyone_action(chat, &message.id));
+                    }
+                    if draw_item(
                         ui,
                         Icon::Trash,
-                        &crate::i18n::gettext(view.locale, "Delete for everyone"),
+                        &crate::i18n::gettext(view.locale, "Delete for me"),
                         true,
                         &mut first,
-                    )
-                {
-                    actions.push(delete_for_everyone_action(chat, &message.id));
-                }
-                if draw_item(
-                    ui,
-                    Icon::Trash,
-                    &crate::i18n::gettext(view.locale, "Delete for me"),
-                    true,
-                    &mut first,
-                ) {
-                    actions.push(delete_for_me_action(chat, &message.id));
-                }
-                if draw_item(
-                    ui,
-                    Icon::Refresh,
-                    &crate::i18n::gettext(view.locale, "Reload earlier messages"),
-                    view.connected && !matches!(message.status, Delivery::Pending | Delivery::Failed),
-                    &mut first,
-                ) {
-                    actions.push(Action::ReloadHistory {
-                        chat: chat.clone(),
-                        message: message.id.clone(),
-                    });
-                }
-                if draw_item(
-                    ui,
-                    Icon::Copy,
-                    &crate::i18n::gettext(view.locale, "Copy message ID"),
-                    true,
-                    &mut first,
-                ) {
-                    actions.push(Action::CopyText(message.id.clone()));
-                }
+                    ) {
+                        actions.push(delete_for_me_action(chat, &message.id));
+                    }
+                    if draw_item(
+                        ui,
+                        Icon::Refresh,
+                        &crate::i18n::gettext(view.locale, "Reload earlier messages"),
+                        view.connected
+                            && !matches!(message.status, Delivery::Pending | Delivery::Failed),
+                        &mut first,
+                    ) {
+                        actions.push(Action::ReloadHistory {
+                            chat: chat.clone(),
+                            message: message.id.clone(),
+                        });
+                    }
+                    if draw_item(
+                        ui,
+                        Icon::Copy,
+                        &crate::i18n::gettext(view.locale, "Copy message ID"),
+                        true,
+                        &mut first,
+                    ) {
+                        actions.push(Action::CopyText(message.id.clone()));
+                    }
+                });
             });
         });
-    });
 
         (!ui.is_sizing_pass()).then_some(first).flatten()
     });
@@ -1170,7 +1165,10 @@ pub(crate) fn mentions_named(
     resolve_mentions(&message.mentions, mention_names)
 }
 
-pub(crate) fn quote_mentions(view: &View<'_>, quoted: &crate::model::Quoted) -> Vec<markup::Mention> {
+pub(crate) fn quote_mentions(
+    view: &View<'_>,
+    quoted: &crate::model::Quoted,
+) -> Vec<markup::Mention> {
     resolve_mentions(&quoted.mentions, view.mention_names)
 }
 

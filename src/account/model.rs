@@ -9,6 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::time::Instant;
 
+use super::wallpaper::resolve_wallpaper_path;
 use crate::app::{AttachmentDraft, ComposerMention, Conversation};
 use crate::backend::{Backend, LinkStatus, Waker};
 use crate::model::{
@@ -17,7 +18,6 @@ use crate::model::{
 };
 use crate::paths::{AccountDirs, AppDirs};
 use crate::settings::AccountSettings;
-use super::wallpaper::resolve_wallpaper_path;
 
 /// One WhatsApp account's runtime state.
 pub struct Account {

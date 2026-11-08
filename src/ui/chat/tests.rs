@@ -37,7 +37,7 @@ mod tests {
     /// literal. The test walks the same table the menu reads.
     #[test]
     fn unavailable_reasons_are_spoken_through_gettext() {
-        const SOURCE: &str = include_str!("conversation.rs");
+        const SOURCE: &str = include_str!("content.rs");
         let locale = crate::i18n::Locale::German;
         for blocker in ButtonBlocker::ALL {
             let shown = blocker.shown();
@@ -79,7 +79,7 @@ mod tests {
     /// the keyboard menu names an unavailable entry.
     #[test]
     fn revoke_reasons_are_spoken_through_gettext() {
-        const SOURCE: &str = include_str!("conversation.rs");
+        const SOURCE: &str = include_str!("menu.rs");
         let locale = crate::i18n::Locale::English;
         for blocker in RevokeBlocker::ALL {
             let reason = blocker.said(locale);
@@ -1709,7 +1709,7 @@ mod reaction_tests {
 
     #[test]
     fn every_message_menu_label_can_be_translated() {
-        const TEMPLATE: &str = include_str!("../../assets/i18n/zapfast.pot");
+        const TEMPLATE: &str = include_str!("../../../assets/i18n/zapfast.pot");
         // Line by line: a Windows checkout may end the template's lines in CRLF.
         let translatable = |text: &str| {
             let msgid = format!("msgid \"{text}\"");

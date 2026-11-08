@@ -72,11 +72,12 @@ pub(crate) fn bubble(
     } else {
         1.0
     };
-    let render_bubble = |ui: &mut egui::Ui, response: &mut Option<egui::Response>, actions: &mut Vec<Action>| {
+    let render_bubble = |ui: &mut egui::Ui,
+                         response: &mut Option<egui::Response>,
+                         actions: &mut Vec<Action>| {
         if with_avatar {
             ui.horizontal_top(|ui| {
-                let (space, _) =
-                    ui.allocate_exact_size(Vec2::splat(SENDER_AVATAR), Sense::hover());
+                let (space, _) = ui.allocate_exact_size(Vec2::splat(SENDER_AVATAR), Sense::hover());
                 // Keep bubble content vertically laid out inside the row.
                 ui.vertical(|ui| {
                     *response = Some(bubble_frame(
@@ -171,7 +172,6 @@ pub(crate) fn bubble(
     }
     response
 }
-
 
 pub(crate) fn speed_pill(
     ui: &mut egui::Ui,
@@ -494,6 +494,7 @@ pub(crate) fn bubble_frame(
         return bubble;
     }
     theme::reveal_focus(&bubble);
+    theme::focus_outline(ui, bubble.id, inner.response.rect, 10.0);
     if ui.ctx().data(|data| {
         data.get_temp::<bool>(theme::keyboard_focus_id())
             .unwrap_or(false)
@@ -513,6 +514,7 @@ pub(crate) fn bubble_frame(
     }
     let reacting = view.reaction_menu && view.reaction == Some(message.id.as_str());
     reply_on_double_click(&bubble, message, actions);
+    reaction_affordance(ui, view, message, &bubble, &tiles, actions);
 
     let viewport = ui.clip_rect();
     let shown =
@@ -667,7 +669,10 @@ pub(crate) fn bubble_frame(
         for i in 0..=segments {
             let t = i as f32 / segments as f32;
             let angle = std::f32::consts::PI - t * std::f32::consts::FRAC_PI_2;
-            let p = pos2(origin.x + radius * angle.cos(), origin.y + radius * angle.sin());
+            let p = pos2(
+                origin.x + radius * angle.cos(),
+                origin.y + radius * angle.sin(),
+            );
             mesh.colored_vertex(p, clear);
         }
         for i in 1..=segments as u32 {
@@ -684,7 +689,11 @@ pub(crate) fn bubble_frame(
             painter.rect_filled(chevron_rect.shrink(1.0), CornerRadius::same(5), button_fill);
         }
 
-        let alpha = if is_chevron_hovered || was_open { 255.0 } else { 220.0 } * ease;
+        let alpha = if is_chevron_hovered || was_open {
+            255.0
+        } else {
+            220.0
+        } * ease;
         let chevron_color = Color32::from_rgba_unmultiplied(255, 255, 255, alpha as u8);
         let stroke_width = 1.8;
         let stroke = Stroke::new(stroke_width, chevron_color);
@@ -828,7 +837,10 @@ pub(crate) fn bubble_frame(
         ui.ctx().data_mut(|data| {
             data.remove::<(f32, f32, f32)>(at_chevron_id);
         });
-        widgets::cleanup_menu_anim(ui.ctx(), egui::Id::new(("msg-menu-open-time", &menu_target.id)));
+        widgets::cleanup_menu_anim(
+            ui.ctx(),
+            egui::Id::new(("msg-menu-open-time", &menu_target.id)),
+        );
     }
     if let Some(focus_pending) = from_keys {
         if open_now && !focus_pending && !reacting && focus_in_menu(ui.ctx()) == Some(false) {
@@ -877,6 +889,14 @@ pub(crate) fn bubble_frame(
     if reacting && !egui::Popup::is_id_open(ui.ctx(), bubble_id.with("popup")) {
         actions.push(Action::ClosePicker);
     }
+    if open_now {
+        ui.painter().rect_stroke(
+            inner.response.rect.expand(2.0),
+            12.0,
+            Stroke::new(theme::FOCUS_STROKE_WIDTH, palette.accent),
+            egui::StrokeKind::Outside,
+        );
+    }
     inner.response.union(bubble)
 }
 
@@ -888,7 +908,12 @@ pub(crate) const LOCATION_CARD_WIDTH: f32 = 300.0;
 pub(crate) const CAROUSEL_GAP: f32 = 8.0;
 
 /// Returns the shared card width, bounded by [`CARD_WIDTH`] and `cap`.
-pub(crate) fn settled_width(ui: &egui::Ui, view: &View<'_>, message: &Message, cap: f32) -> Option<f32> {
+pub(crate) fn settled_width(
+    ui: &egui::Ui,
+    view: &View<'_>,
+    message: &Message,
+    cap: f32,
+) -> Option<f32> {
     if matches!(
         message.content,
         Content::Location { .. } | Content::LiveLocation { .. }
@@ -927,7 +952,12 @@ pub(crate) fn settled_width(ui: &egui::Ui, view: &View<'_>, message: &Message, c
 }
 
 /// Widest wrapped text row, including footer space on the last line.
-pub(crate) fn natural_text_width(ui: &egui::Ui, view: &View<'_>, message: &Message, cap: f32) -> Option<f32> {
+pub(crate) fn natural_text_width(
+    ui: &egui::Ui,
+    view: &View<'_>,
+    message: &Message,
+    cap: f32,
+) -> Option<f32> {
     let palette = view.palette;
     let text = match &message.content {
         Content::Text { text, .. } | Content::Interactive { text, .. } => text,
@@ -981,7 +1011,11 @@ pub(crate) struct QuoteColours {
     pub(crate) text: Color32,
 }
 
-pub(crate) fn quote_colours(palette: &Palette, own: bool, tint: impl FnOnce() -> Color32) -> QuoteColours {
+pub(crate) fn quote_colours(
+    palette: &Palette,
+    own: bool,
+    tint: impl FnOnce() -> Color32,
+) -> QuoteColours {
     if own && palette.bubbles == theme::BubbleStyle::Messages {
         return QuoteColours {
             fill: Color32::WHITE.gamma_multiply(0.15),
@@ -1004,7 +1038,11 @@ pub(crate) fn quotes_me(view: &View<'_>, quoted: &crate::model::Quoted) -> bool 
     view.me == Some(quoted.sender.as_str())
 }
 
-pub(crate) fn quoted_sender_name(view: &View<'_>, quoted: &crate::model::Quoted, you: &str) -> String {
+pub(crate) fn quoted_sender_name(
+    view: &View<'_>,
+    quoted: &crate::model::Quoted,
+    you: &str,
+) -> String {
     if quotes_me(view, quoted) {
         you.to_owned()
     } else {
@@ -1212,7 +1250,10 @@ pub(crate) const FORWARDED_ICON: f32 = 14.0;
 pub(crate) const FORWARDED_GAP: f32 = 4.0;
 pub(crate) const FORWARDED_HEIGHT: f32 = 15.0;
 
-pub(crate) fn forwarded_label(ui: &mut egui::Ui, palette: &Palette) -> (Rect, std::sync::Arc<egui::Galley>) {
+pub(crate) fn forwarded_label(
+    ui: &mut egui::Ui,
+    palette: &Palette,
+) -> (Rect, std::sync::Arc<egui::Galley>) {
     let mut job = egui::text::LayoutJob::default();
     job.append(
         "Forwarded",
@@ -1643,7 +1684,12 @@ pub(crate) fn reaction_groups(message: &Message) -> Vec<(&str, Vec<&crate::model
     groups
 }
 
-pub(crate) fn reactions(ui: &mut egui::Ui, view: &View<'_>, message: &Message, actions: &mut Vec<Action>) {
+pub(crate) fn reactions(
+    ui: &mut egui::Ui,
+    view: &View<'_>,
+    message: &Message,
+    actions: &mut Vec<Action>,
+) {
     let palette = view.palette;
     let groups = reaction_groups(message);
     let mine = message.reactions.iter().any(|reaction| reaction.from_me);

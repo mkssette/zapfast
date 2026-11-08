@@ -3,9 +3,9 @@
 
 use std::time::Instant;
 
+use super::model::Account;
 use crate::backend::LinkStatus;
 use crate::model::AccountId;
-use super::model::Account;
 
 /// Tracks background synchronization state for a single account.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -191,7 +191,9 @@ impl AccountManager {
                 continue;
             }
             account.reported_online = Some(online);
-            account.backend.send(crate::backend::Command::SetOnline(online));
+            account
+                .backend
+                .send(crate::backend::Command::SetOnline(online));
         }
     }
 
@@ -203,15 +205,21 @@ impl AccountManager {
         for (index, account) in self.accounts.iter_mut().enumerate() {
             let is_active = index == active;
             let prefetch_on = account.settings.history_prefetch || (bg_sync && account.syncing);
-            let focused = if is_active { account.open_chat.clone() } else { None };
+            let focused = if is_active {
+                account.open_chat.clone()
+            } else {
+                None
+            };
             let wanted = (prefetch_on, focused);
             if account.prefetch_sent.as_ref() == Some(&wanted) {
                 continue;
             }
-            account.backend.send(crate::backend::Command::SetHistoryPrefetch {
-                on: wanted.0,
-                focused: wanted.1.clone(),
-            });
+            account
+                .backend
+                .send(crate::backend::Command::SetHistoryPrefetch {
+                    on: wanted.0,
+                    focused: wanted.1.clone(),
+                });
             account.prefetch_sent = Some(wanted);
         }
     }

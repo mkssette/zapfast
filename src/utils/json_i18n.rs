@@ -25,9 +25,8 @@ impl LanguagePack {
     }
 }
 
-static REGISTRY: LazyLock<RwLock<HashMap<String, HashMap<String, String>>>> = LazyLock::new(|| {
-    RwLock::new(HashMap::new())
-});
+static REGISTRY: LazyLock<RwLock<HashMap<String, HashMap<String, String>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// JSON translation API enabling custom and dynamic language loading.
 pub struct JsonI18n;

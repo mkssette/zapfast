@@ -326,7 +326,11 @@ pub(crate) fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                     if back.clicked() {
                         app.actions.push(Action::CloseChat);
                     }
-                    ui.add_space(if palette.vibrant() { BUTTON_GAP * 0.5 } else { 4.0 });
+                    ui.add_space(if palette.vibrant() {
+                        BUTTON_GAP * 0.5
+                    } else {
+                        4.0
+                    });
                 }
                 let picture = app.avatar(&chat.id);
                 let (subtitle, color) = subtitle(app, chat);
@@ -505,9 +509,12 @@ pub(crate) fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                         ui.painter()
                             .set(more_glass, glass_button(&palette, more.rect));
                     }
-                    let (pin_icon, pin_label, pin_act) = super::actions::pin_action(chat, app.locale);
-                    let (archive_icon, archive_label, archive_act) = super::actions::archive_action(chat, app.locale);
-                    let (clear_icon, clear_label, clear_act) = super::actions::clear_chat_action(chat, app.locale);
+                    let (pin_icon, pin_label, pin_act) =
+                        super::actions::pin_action(chat, app.locale);
+                    let (archive_icon, archive_label, archive_act) =
+                        super::actions::archive_action(chat, app.locale);
+                    let (clear_icon, clear_label, clear_act) =
+                        super::actions::clear_chat_action(chat, app.locale);
                     let leave = super::actions::leave_action(chat, app.locale, &app.our_ids());
                     let copy_number = super::actions::copy_number_action(chat, app.locale);
 
@@ -594,7 +601,8 @@ pub(crate) fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                             if widgets::menu_item(ui, &palette, Some(pin_icon), &pin_label) {
                                 app.actions.push(pin_act);
                             }
-                            if widgets::menu_item(ui, &palette, Some(archive_icon), &archive_label) {
+                            if widgets::menu_item(ui, &palette, Some(archive_icon), &archive_label)
+                            {
                                 app.actions.push(archive_act);
                             }
                             if widgets::menu_item_enabled(
@@ -630,7 +638,8 @@ pub(crate) fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                                     app.actions.push(act);
                                 }
                             }
-                            if widgets::menu_item(ui, &palette, Some(Icon::X), close_label.as_ref()) {
+                            if widgets::menu_item(ui, &palette, Some(Icon::X), close_label.as_ref())
+                            {
                                 app.actions.push(Action::CloseChat);
                             }
                         });

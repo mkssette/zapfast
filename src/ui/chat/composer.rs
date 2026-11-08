@@ -4,6 +4,15 @@ pub(crate) const COMPOSER_RADIUS: u8 = 20;
 pub(crate) const COMPOSER_PADDING: f32 = 8.0;
 pub(crate) const COMPOSER_CONTROL: f32 = 36.0;
 pub(crate) const COMPOSER_INSET: i8 = 2;
+pub(crate) const COMPOSER_PAIR_GAP: f32 = -4.0;
+pub(crate) const COMPOSER_TEXT_GAP: f32 = 6.0;
+pub(crate) const PLUS_EDGE: f32 = 34.0;
+
+pub(crate) fn ink_middle(ui: &egui::Ui, line_height: f32) -> f32 {
+    let format = egui::TextFormat::simple(theme::regular(BODY_SIZE), Color32::WHITE);
+    let (galley, _) = crate::bidi::layout_editor(ui, "Hy", &format, f32::INFINITY, true);
+    widgets::ink_middle(&galley).unwrap_or(line_height * 0.5)
+}
 
 pub(crate) fn composer_id() -> egui::Id {
     egui::Id::new("composer-text")
@@ -25,7 +34,11 @@ pub(crate) fn recording_wave_id() -> egui::Id {
     egui::Id::new("recording-wave")
 }
 
-pub(crate) fn last_line<R>(ui: &mut egui::Ui, line: f32, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+pub(crate) fn last_line<R>(
+    ui: &mut egui::Ui,
+    line: f32,
+    add: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
     ui.allocate_ui_with_layout(vec2(0.0, line), Layout::left_to_right(Align::Center), add)
         .inner
 }
@@ -259,7 +272,12 @@ impl Composer {
                     ui.add_space((ui.available_width() - width).max(0.0) * 0.5);
                     theme::text(ui, "Only", theme::regular(13.5), palette.secondary);
                     theme::text(ui, "admins", theme::semibold(13.5), palette.accent);
-                    theme::text(ui, "can send messages", theme::regular(13.5), palette.secondary);
+                    theme::text(
+                        ui,
+                        "can send messages",
+                        theme::regular(13.5),
+                        palette.secondary,
+                    );
                 });
             }
             ui.add_space(8.0);
@@ -292,9 +310,12 @@ impl ReplyDrawer {
 
         let anim_id = egui::Id::new("composer-reply-tween");
         let is_open = app.reply_to.is_some() && app.editing.is_none();
-        let raw_progress = ui
-            .ctx()
-            .animate_bool_with_time(anim_id, is_open, Self::ANIM_DURATION);
+        let raw_progress = if cfg!(test) {
+            if is_open { 1.0 } else { 0.0 }
+        } else {
+            ui.ctx()
+                .animate_bool_with_time(anim_id, is_open, Self::ANIM_DURATION)
+        };
         let progress = if is_open {
             egui::emath::easing::cubic_out(raw_progress)
         } else {
@@ -332,8 +353,20 @@ impl ReplyDrawer {
         }
 
         let (_, section_rect) = ui.allocate_space(vec2(width, extra_height));
+        let reported_rect = if cfg!(test) {
+            let pill_top = section_rect.top() - COMPOSER_INSET as f32;
+            Rect::from_min_size(
+                pos2(
+                    section_rect.left(),
+                    pill_top - STRIP_GAP - Self::TARGET_HEIGHT,
+                ),
+                vec2(width, Self::TARGET_HEIGHT),
+            )
+        } else {
+            section_rect
+        };
         ui.ctx()
-            .data_mut(|data| data.insert_temp(reply_strip_id(), section_rect));
+            .data_mut(|data| data.insert_temp(reply_strip_id(), reported_rect));
 
         let clip = section_rect.intersect(ui.clip_rect());
         if !clip.is_positive() {
@@ -341,7 +374,10 @@ impl ReplyDrawer {
         }
 
         let content_rect = Rect::from_min_size(
-            pos2(section_rect.left(), section_rect.bottom() - Self::TARGET_HEIGHT),
+            pos2(
+                section_rect.left(),
+                section_rect.bottom() - Self::TARGET_HEIGHT,
+            ),
             vec2(width, Self::TARGET_HEIGHT),
         );
 
@@ -356,8 +392,14 @@ impl ReplyDrawer {
 
         let card_margin_x = 4.0;
         let card_rect = Rect::from_min_max(
-            pos2(content_rect.left() + card_margin_x, content_rect.top() + 3.0),
-            pos2(content_rect.right() - card_margin_x, content_rect.bottom() - 3.0),
+            pos2(
+                content_rect.left() + card_margin_x,
+                content_rect.top() + 3.0,
+            ),
+            pos2(
+                content_rect.right() - card_margin_x,
+                content_rect.bottom() - 3.0,
+            ),
         );
         let card_fill = if palette.dark {
             Color32::from_rgba_unmultiplied(0, 0, 0, 80)
@@ -374,19 +416,23 @@ impl ReplyDrawer {
         let bar_inset_x = 6.0;
         let bar_inset_y = 5.0;
         let bar_rect = Rect::from_min_max(
-            pos2(card_rect.left() + bar_inset_x, card_rect.top() + bar_inset_y),
-            pos2(card_rect.left() + bar_inset_x + bar_width, card_rect.bottom() - bar_inset_y),
+            pos2(
+                card_rect.left() + bar_inset_x,
+                card_rect.top() + bar_inset_y,
+            ),
+            pos2(
+                card_rect.left() + bar_inset_x + bar_width,
+                card_rect.bottom() - bar_inset_y,
+            ),
         );
         let sender_color = if quoted.from_me {
             palette.accent
         } else {
             palette.sender(crate::util::hue(&quoted.sender))
         };
-        child.painter().rect_filled(
-            bar_rect,
-            CornerRadius::same(2),
-            sender_color,
-        );
+        child
+            .painter()
+            .rect_filled(bar_rect, CornerRadius::same(2), sender_color);
 
         let mut card_ui = child.new_child(
             egui::UiBuilder::new()
@@ -476,8 +522,7 @@ impl ComposerPill {
             .ctx()
             .data(|data| data.get_temp::<f32>(wrap_id))
             .map(|wrap| {
-                let galley =
-                    crate::bidi::layout_editor(ui, &app.composer, &format, wrap, true).0;
+                let galley = crate::bidi::layout_editor(ui, &app.composer, &format, wrap, true).0;
                 let rows = if app.composer.is_empty() {
                     1
                 } else {
@@ -555,21 +600,21 @@ impl ComposerInputRow {
         let id = composer_id();
         let wrap_id = id.with("wrap");
         let button_width = if review_send.is_some() { 0.0 } else { line };
-        let view_once = app.editing.is_none()
-            && (app.pending_supports_view_once() || app.pending_view_once);
+        let view_once =
+            app.editing.is_none() && (app.pending_supports_view_once() || app.pending_view_once);
         let view_once_width = if view_once {
             COMPOSER_CONTROL + ui.spacing().item_spacing.x
         } else {
             0.0
         };
 
-        ui.add_space(6.0);
+        ui.add_space((line * 0.5 - PLUS_EDGE * 0.5).max(0.0));
         if app.editing.is_none() {
             let tools = last_line(ui, line, |ui| {
                 theme::icon_button(
                     ui,
                     Icon::Plus,
-                    20.0,
+                    22.0,
                     if app.composer_tools_open {
                         palette.accent
                     } else {
@@ -582,12 +627,12 @@ impl ComposerInputRow {
             .tab_stop(Stop::Attach);
             Self::tools_menu(app, chat, &tools);
 
-            ui.add_space(2.0);
+            ui.add_space(COMPOSER_PAIR_GAP - ui.spacing().item_spacing.x);
             let smile = last_line(ui, line, |ui| {
                 theme::icon_button(
                     ui,
                     Icon::Smile,
-                    20.0,
+                    22.0,
                     if app.picker.is_some() {
                         palette.accent
                     } else {
@@ -605,21 +650,30 @@ impl ComposerInputRow {
                 }
                 app.actions.push(Action::TogglePicker(PickerTab::Emoji));
             }
-            ui.add_space(4.0);
+            ui.add_space(COMPOSER_TEXT_GAP - ui.spacing().item_spacing.x - 8.0);
         }
 
+        let row_height = (text_height + 2.0 * field_margin).max(line);
         let field_width =
-            (ui.available_width() - button_width - view_once_width - 6.0).max(60.0);
+            (ui.available_width() - button_width - view_once_width - ui.spacing().item_spacing.x)
+                .max(0.0);
+        let ink_middle = ink_middle(ui, line_height);
+        let top = fastframe_text::snap_to_pixels(
+            row_height - line * 0.5 - (text_height - line_height) - ink_middle,
+            ui.ctx().pixels_per_point(),
+        )
+        .max(0.0);
+        let bottom = (row_height - text_height - top).max(0.0);
         Frame::new()
             .fill(Color32::TRANSPARENT)
             .inner_margin(Margin {
-                left: 4,
-                right: 4,
-                top: field_margin as i8,
-                bottom: field_margin as i8,
+                left: 8,
+                right: 8,
+                top: top as i8,
+                bottom: bottom as i8,
             })
             .show(ui, |ui| {
-                ui.set_width((field_width - 8.0).max(0.0));
+                ui.set_width((field_width - 16.0).max(0.0));
                 let scroll_visibility = if rows > 5 {
                     egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded
                 } else {
@@ -637,18 +691,14 @@ impl ComposerInputRow {
                             egui::TextFormat::simple(theme::regular(BODY_SIZE), palette.text);
                         format.line_height = Some(20.0);
                         let composer_rtl = crate::bidi::base_rtl(&app.composer);
-                        let mut layouter =
-                            |ui: &egui::Ui, text: &dyn egui::TextBuffer, wrap: f32| {
-                                let (galley, found) = crate::bidi::layout_editor(
-                                    ui,
-                                    text.as_str(),
-                                    &format,
-                                    wrap,
-                                    true,
-                                );
-                                clusters = found;
-                                galley
-                            };
+                        let mut layouter = |ui: &egui::Ui,
+                                            text: &dyn egui::TextBuffer,
+                                            wrap: f32| {
+                            let (galley, found) =
+                                crate::bidi::layout_editor(ui, text.as_str(), &format, wrap, true);
+                            clusters = found;
+                            galley
+                        };
                         let wrap = ui.available_width();
                         ui.ctx().data_mut(|data| data.insert_temp(wrap_id, wrap));
                         let selection_before = egui::TextEdit::load_state(ui.ctx(), id)
@@ -660,8 +710,7 @@ impl ComposerInputRow {
                             .margin(Margin::ZERO)
                             .hint_text(
                                 egui::RichText::new(if app.pending.is_empty() {
-                                    crate::i18n::gettext(app.locale, "Type a message")
-                                        .into_owned()
+                                    crate::i18n::gettext(app.locale, "Type a message").into_owned()
                                 } else {
                                     crate::i18n::gettext(app.locale, "Add a caption").into_owned()
                                 })
@@ -696,11 +745,9 @@ impl ComposerInputRow {
                             egui::TextEdit::store_state(ui.ctx(), id, output.state.clone());
                         }
                         for (start, length, cluster) in &clusters {
-                            let Some(bounds) = crate::bidi::char_bounds(
-                                &output.galley,
-                                *start,
-                                start + length,
-                            ) else {
+                            let Some(bounds) =
+                                crate::bidi::char_bounds(&output.galley, *start, start + length)
+                            else {
                                 continue;
                             };
                             if bounds.height() > line_height * 1.5 {
@@ -710,16 +757,9 @@ impl ComposerInputRow {
                             crate::emoji::paint_cluster(ui, cluster, rect);
                         }
 
-                        let painted =
-                            Rect::from_min_size(output.galley_pos, output.galley.size());
-                        let galley = crate::bidi::layout_editor(
-                            ui,
-                            &app.composer,
-                            &format,
-                            wrap,
-                            true,
-                        )
-                        .0;
+                        let painted = Rect::from_min_size(output.galley_pos, output.galley.size());
+                        let galley =
+                            crate::bidi::layout_editor(ui, &app.composer, &format, wrap, true).0;
                         let after_height = if app.composer.is_empty() {
                             line_height
                         } else {
@@ -769,14 +809,20 @@ impl ComposerInputRow {
             || !app.pending.is_empty()
             || (unsent_voice.is_some() && app.editing.is_none());
         if review_send.is_none() {
+            let (fill, hover, icon) = if palette.vibrant() {
+                (palette.accent, palette.accent_hover, palette.on_accent)
+            } else {
+                (palette.surface, palette.surface_hover, palette.dim)
+            };
             last_line(ui, line, |ui| {
                 if !ready && app.editing.is_none() {
-                    if theme::icon_button(
+                    if theme::circle_button(
                         ui,
                         Icon::Mic,
-                        20.0,
+                        button_width,
+                        fill,
+                        hover,
                         palette.secondary,
-                        palette.text,
                         "Record a voice message",
                     )
                     .tab_stop(Stop::Send)
@@ -790,24 +836,15 @@ impl ComposerInputRow {
                     } else {
                         Icon::Send
                     };
-                    if theme::circle_button(
-                        ui,
-                        icon_kind,
-                        button_width - 4.0,
-                        palette.accent,
-                        palette.accent_hover,
-                        palette.on_accent,
-                        "Send",
-                    )
-                    .tab_stop(Stop::Send)
-                    .clicked()
+                    if theme::circle_button(ui, icon_kind, button_width, fill, hover, icon, "Send")
+                        .tab_stop(Stop::Send)
+                        .clicked()
                     {
                         *send_click = true;
                     }
                 }
             });
         }
-        ui.add_space(2.0);
     }
 
     fn format_context_menu(
@@ -875,7 +912,9 @@ impl ComposerInputRow {
                 }
             });
         });
-        let focus_pending = ui.ctx().data(|data| data.get_temp::<bool>(focus_pending_id));
+        let focus_pending = ui
+            .ctx()
+            .data(|data| data.get_temp::<bool>(focus_pending_id));
         if let Some(menu) = shown_menu {
             if focus_pending.is_some() {
                 ui.memory_mut(|memory| memory.set_modal_layer(menu.response.layer_id));

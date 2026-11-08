@@ -36,7 +36,11 @@ pub(crate) fn standalone_trigger(text: &str, cursor: usize, trigger: char) -> Op
 }
 
 /// Active mention query from its `@` through the current text cursor.
-pub(crate) fn active_mention(text: &str, start: Option<usize>, cursor: usize) -> Option<(usize, &str)> {
+pub(crate) fn active_mention(
+    text: &str,
+    start: Option<usize>,
+    cursor: usize,
+) -> Option<(usize, &str)> {
     let start = start?;
     let end = text
         .char_indices()
@@ -46,7 +50,11 @@ pub(crate) fn active_mention(text: &str, start: Option<usize>, cursor: usize) ->
     (!query.contains(['@', '\n'])).then_some((end, query))
 }
 
-pub(crate) fn active_emoji(text: &str, start: Option<usize>, cursor: usize) -> Option<(usize, &str)> {
+pub(crate) fn active_emoji(
+    text: &str,
+    start: Option<usize>,
+    cursor: usize,
+) -> Option<(usize, &str)> {
     let start = start?;
     let after = start.checked_add(1)?;
     if text.get(start..after) != Some(":") {

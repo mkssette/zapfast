@@ -35,9 +35,7 @@ pub fn hardware_fingerprint() -> [u8; 32] {
 #[cfg(windows)]
 fn windows_machine_guid() -> String {
     use windows_sys::Win32::Foundation::ERROR_SUCCESS;
-    use windows_sys::Win32::System::Registry::{
-        HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW,
-    };
+    use windows_sys::Win32::System::Registry::{HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ, RegGetValueW};
 
     let wide = |text: &str| text.encode_utf16().chain([0]).collect::<Vec<u16>>();
     let subkey = wide(r"SOFTWARE\Microsoft\Cryptography");

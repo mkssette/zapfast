@@ -50,7 +50,10 @@ impl<'a> AccountScope<'a> {
 
     #[inline]
     pub fn get_mut(&mut self, id: &AccountId) -> Option<&mut Account> {
-        self.app.accounts.iter_mut().find(|account| &account.id == id)
+        self.app
+            .accounts
+            .iter_mut()
+            .find(|account| &account.id == id)
     }
 
     #[inline]
@@ -132,7 +135,9 @@ impl<'a> AccountScope<'a> {
     }
 
     pub fn set_notifications(&mut self, id: AccountId, enabled: bool) {
-        self.app.actions.push(Action::SetAccountNotifications(id, enabled));
+        self.app
+            .actions
+            .push(Action::SetAccountNotifications(id, enabled));
     }
 
     pub fn set_background_sync(&mut self, enabled: bool) {
@@ -164,7 +169,10 @@ impl<'a> AccountScope<'a> {
     /// Reconnects disconnected accounts in the background.
     pub fn reconnect_all(&mut self) {
         for account in &self.app.accounts {
-            if matches!(account.link, crate::backend::LinkStatus::Disconnected { .. }) {
+            if matches!(
+                account.link,
+                crate::backend::LinkStatus::Disconnected { .. }
+            ) {
                 account.backend.send(Command::Reconnect);
             }
         }

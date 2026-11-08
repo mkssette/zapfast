@@ -1038,20 +1038,13 @@ pub fn menu_item_icon_colored(
     let (rect, response) = ui.allocate_exact_size(vec2(width, height), Sense::click());
     theme::reveal_focus(&response);
     response.widget_info(|| {
-        egui::WidgetInfo::labeled(
-            egui::WidgetType::Button,
-            ui.is_enabled(),
-            label,
-        )
+        egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), label)
     });
     if ui.is_rect_visible(rect) {
         let hovered = response.hovered() || response.has_focus();
         if hovered {
-            ui.painter().rect_filled(
-                rect,
-                CornerRadius::same(8),
-                palette.surface_hover,
-            );
+            ui.painter()
+                .rect_filled(rect, CornerRadius::same(8), palette.surface_hover);
             ui.painter().rect_stroke(
                 rect,
                 CornerRadius::same(8),
@@ -1059,10 +1052,8 @@ pub fn menu_item_icon_colored(
                 egui::StrokeKind::Inside,
             );
         }
-        let icon_rect = Rect::from_center_size(
-            pos2(rect.left() + 20.0, rect.center().y),
-            Vec2::splat(20.0),
-        );
+        let icon_rect =
+            Rect::from_center_size(pos2(rect.left() + 20.0, rect.center().y), Vec2::splat(20.0));
         icon.image(color, 20.0).paint_at(ui, icon_rect);
 
         let text_pos = pos2(rect.left() + 42.0, rect.center().y);
@@ -1162,7 +1153,8 @@ pub fn search_field(
             },
         )
     };
-    ui.painter().rect(rect, height * 0.5, fill, stroke, egui::StrokeKind::Inside);
+    ui.painter()
+        .rect(rect, height * 0.5, fill, stroke, egui::StrokeKind::Inside);
     let icon_rect =
         Rect::from_center_size(pos2(rect.left() + 18.0, rect.center().y), Vec2::splat(16.0));
     Icon::Search
@@ -1316,7 +1308,12 @@ pub fn credit(ui: &mut Ui, palette: &Palette, _locale: crate::i18n::Locale) -> b
     let mut clicked = false;
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
-        theme::text(ui, "Original hecho por", theme::regular(13.0), palette.secondary);
+        theme::text(
+            ui,
+            "Original hecho por",
+            theme::regular(13.0),
+            palette.secondary,
+        );
         clicked = theme::link(ui, "Carmine Paolino", theme::medium(13.0), palette.link)
             .on_hover_text(AUTHOR_URL)
             .clicked();

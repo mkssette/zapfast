@@ -473,8 +473,16 @@ fn header_button_row(app: &mut App, ui: &mut egui::Ui, buttons: &[HeaderButton],
                     ui,
                     Icon::Refresh,
                     HEADER_ICON,
-                    if spinning { palette.accent } else { palette.secondary },
-                    if spinning { palette.accent } else { palette.text },
+                    if spinning {
+                        palette.accent
+                    } else {
+                        palette.secondary
+                    },
+                    if spinning {
+                        palette.accent
+                    } else {
+                        palette.text
+                    },
                     tooltip.as_ref(),
                 )
                 .clicked()
@@ -2178,7 +2186,12 @@ fn context_menu(app: &mut App, ui: &mut egui::Ui, chat: &Chat, palette: &Palette
     }
     let now = crate::util::now();
     if chat.muted(now) {
-        if widgets::menu_item(ui, palette, Some(Icon::Bell), &crate::i18n::gettext(locale, "Unmute")) {
+        if widgets::menu_item(
+            ui,
+            palette,
+            Some(Icon::Bell),
+            &crate::i18n::gettext(locale, "Unmute"),
+        ) {
             app.actions.push(Action::SetMuted(chat.id.clone(), None));
         }
     } else {
@@ -2197,7 +2210,12 @@ fn context_menu(app: &mut App, ui: &mut egui::Ui, chat: &Chat, palette: &Palette
             app.actions.push(act);
         }
     }
-    if widgets::menu_item(ui, palette, Some(Icon::Info), &crate::i18n::gettext(locale, "Info")) {
+    if widgets::menu_item(
+        ui,
+        palette,
+        Some(Icon::Info),
+        &crate::i18n::gettext(locale, "Info"),
+    ) {
         app.actions.push(Action::OpenChat(chat.id.clone()));
         app.actions.push(Action::OpenInfo(chat.id.clone()));
     }
@@ -2367,7 +2385,7 @@ mod tests {
     /// list beside a chat. Calls, Starred and Settings are in the rail.
     #[test]
     fn header_buttons_follow_the_width() {
-        use HeaderButton::{HideList, NewChat};
+        use HeaderButton::{HideList, NewChat, Sync};
         let buttons = |width: f32| {
             let ctx = egui::Context::default();
             let mut buttons = Vec::new();
@@ -2384,8 +2402,8 @@ mod tests {
             output.textures_delta.clear();
             buttons
         };
-        assert_eq!(buttons(1000.0), [NewChat, HideList]);
-        assert_eq!(buttons(400.0), [NewChat]);
+        assert_eq!(buttons(1000.0), [NewChat, Sync, HideList]);
+        assert_eq!(buttons(400.0), [NewChat, Sync]);
     }
 
     /// The Calls tab's header carries New call, as WhatsApp's Calls pane

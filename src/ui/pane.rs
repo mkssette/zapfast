@@ -5,7 +5,9 @@
 
 use std::ops::Range;
 
-use egui::{Align, Align2, Frame, Key, Layout, Margin, Modifiers, Rect, Sense, Stroke, UiBuilder, Vec2};
+use egui::{
+    Align, Align2, Frame, Key, Layout, Margin, Modifiers, Rect, Sense, Stroke, UiBuilder, Vec2,
+};
 use egui::{pos2, vec2};
 use jiff::civil::Date;
 
@@ -51,7 +53,11 @@ pub(super) fn ease_out_cubic(t: f32) -> f32 {
 pub fn show(app: &mut App, ui: &mut egui::Ui) -> Option<Rect> {
     let anim_id = egui::Id::new("chat-search-pane-anim");
     let is_open = app.chat_search_visible();
-    let t = ui.ctx().animate_bool_with_time(anim_id, is_open, 0.24);
+    let t = if cfg!(test) {
+        if is_open { 1.0 } else { 0.0 }
+    } else {
+        ui.ctx().animate_bool_with_time(anim_id, is_open, 0.24)
+    };
     if !is_open && t <= 0.001 {
         return None;
     }
@@ -75,14 +81,24 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) -> Option<Rect> {
 pub fn show_overlay(app: &mut App, ctx: &egui::Context, region: Rect) {
     let anim_id = egui::Id::new("chat-search-pane-anim");
     let is_open = app.chat_search_visible();
-    let t = ctx.animate_bool_with_time(anim_id, is_open, 0.24);
+    let t = if cfg!(test) {
+        if is_open { 1.0 } else { 0.0 }
+    } else {
+        ctx.animate_bool_with_time(anim_id, is_open, 0.24)
+    };
     if !is_open && t <= 0.001 {
         return;
     }
     let width = app.settings.search_pane_width.clamp(MIN_WIDTH, MAX_WIDTH);
-    overlay(app, ctx, "chat-search-overlay", width, region, t, |app, ui| {
-        search(app, ui, true)
-    });
+    overlay(
+        app,
+        ctx,
+        "chat-search-overlay",
+        width,
+        region,
+        t,
+        |app, ui| search(app, ui, true),
+    );
 }
 
 /// Where [`dock`] put a pane: docked at the right, at the width it took
@@ -107,7 +123,16 @@ pub(super) fn dock(
     if region.width() < MIN_WIDTH + CONVERSATION_MIN {
         return Docking::Overlay(region);
     }
-    docked(app, ui, id, wanted, MIN_WIDTH, CONVERSATION_MIN, anim_t, contents)
+    docked(
+        app,
+        ui,
+        id,
+        wanted,
+        MIN_WIDTH,
+        CONVERSATION_MIN,
+        anim_t,
+        contents,
+    )
 }
 
 /// Docks a right-hand pane whatever the room, narrowing the conversation
@@ -141,7 +166,10 @@ pub(super) fn docked(
     let panel = if is_animating {
         panel.resizable(false).exact_size(animated_width)
     } else {
-        panel.resizable(true).default_size(wanted).size_range(min..=max)
+        panel
+            .resizable(true)
+            .default_size(wanted)
+            .size_range(min..=max)
     };
 
     let response = panel.show(ui, |ui| {
@@ -194,7 +222,10 @@ pub(super) fn overlay(
     let is_animating = anim_t < 0.999;
     let width = width.max(MIN_WIDTH).min(region.width());
     let current_width = (width * ease).max(1.0);
-    let rect = Rect::from_min_max(pos2(region.right() - current_width, region.top()), region.max);
+    let rect = Rect::from_min_max(
+        pos2(region.right() - current_width, region.top()),
+        region.max,
+    );
     // Above the conversation's header too, which a vibrant window draws on
     // a layer of its own over the messages, so the header keeps its glass.
     egui::Area::new(egui::Id::new(id))
@@ -216,10 +247,8 @@ pub(super) fn overlay(
                     ui.set_max_size(rect.size());
                     if is_animating {
                         ui.ctx().request_repaint();
-                        let content_rect = Rect::from_min_size(
-                            rect.min,
-                            vec2(width, rect.height()),
-                        );
+                        let content_rect =
+                            Rect::from_min_size(rect.min, vec2(width, rect.height()));
                         let mut child_ui = ui.new_child(
                             UiBuilder::new()
                                 .max_rect(content_rect)

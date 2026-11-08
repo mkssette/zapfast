@@ -31,7 +31,9 @@ impl<'a> Sender<'a> {
     }
 
     fn resolve_chat(&self) -> Option<ChatId> {
-        self.target_chat.clone().or_else(|| self.app.account().open_chat.clone())
+        self.target_chat
+            .clone()
+            .or_else(|| self.app.account().open_chat.clone())
     }
 
     pub fn text(&mut self, text: impl Into<String>) -> bool {

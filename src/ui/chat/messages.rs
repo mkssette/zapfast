@@ -10,7 +10,6 @@ impl MessageList {
     }
 }
 
-
 /// How far `message`'s attachment download has got, once the worker has said.
 pub(crate) fn download_fraction(view: &View<'_>, message: &Message) -> Option<f32> {
     let percent = view.download_progress?.get(&message.id)?;
@@ -109,7 +108,12 @@ pub(crate) fn album_run(messages: &[Message], start: usize) -> Option<&[Message]
     (end > start + 1).then_some(&messages[start..end])
 }
 
-pub(crate) fn estimated_height(message: &Message, width: f32, new_day: bool, notices: usize) -> f32 {
+pub(crate) fn estimated_height(
+    message: &Message,
+    width: f32,
+    new_day: bool,
+    notices: usize,
+) -> f32 {
     let bubble = ((width * 0.72).min(560.0) - 20.0).max(40.0);
     let text_rows = |text: &str| {
         let per_row = bubble / 7.5;
@@ -137,7 +141,9 @@ pub(crate) fn estimated_height(message: &Message, width: f32, new_day: bool, not
     40.0 + body + if new_day { 36.0 } else { 0.0 } + notices as f32 * PIN_NOTICE_HEIGHT
 }
 
-pub(crate) fn pin_notices_in_time_order(rows: &[crate::archive::Pinned]) -> Vec<crate::archive::Pinned> {
+pub(crate) fn pin_notices_in_time_order(
+    rows: &[crate::archive::Pinned],
+) -> Vec<crate::archive::Pinned> {
     let mut sorted = rows.to_vec();
     sorted.sort_by_key(|row| row.pinned_at);
     sorted
@@ -1560,7 +1566,11 @@ pub(crate) fn top_of_history(
 }
 
 /// Live chat activity with stacked avatars, typing dots, and a recording icon.
-pub(crate) fn typing_bubble(ui: &mut egui::Ui, view: &View<'_>, typers: &[(String, String, ChatActivity)]) {
+pub(crate) fn typing_bubble(
+    ui: &mut egui::Ui,
+    view: &View<'_>,
+    typers: &[(String, String, ChatActivity)],
+) {
     let palette = view.palette;
     ui.horizontal(|ui| {
         if shows_sender_pictures(view.chat) {
@@ -1685,7 +1695,11 @@ pub fn reaction_affordance_rect(bubble: Rect, bounds: Rect, own: bool) -> Rect {
 }
 
 /// Includes the small gap so moving from the bubble to the control does not hide it.
-pub(crate) fn reaction_affordance_visible(pointer: Option<egui::Pos2>, bubble: Rect, button: Rect) -> bool {
+pub(crate) fn reaction_affordance_visible(
+    pointer: Option<egui::Pos2>,
+    bubble: Rect,
+    button: Rect,
+) -> bool {
     pointer.is_some_and(|pointer| bubble.union(button).contains(pointer))
 }
 
@@ -1884,8 +1898,6 @@ pub(crate) fn timer_notice(
     ui.vertical_centered(|ui| widgets::chip(ui, &view.palette, &text))
         .inner
 }
-
-
 
 pub struct SelectionLeash {
     pub view: std::sync::Arc<std::sync::Mutex<Option<Rect>>>,
@@ -2184,7 +2196,11 @@ pub(crate) fn call_menu(
 }
 
 /// Starts a reply when the response was double-clicked, as the menu's "Reply".
-pub(crate) fn reply_on_double_click(response: &egui::Response, message: &Message, actions: &mut Vec<Action>) {
+pub(crate) fn reply_on_double_click(
+    response: &egui::Response,
+    message: &Message,
+    actions: &mut Vec<Action>,
+) {
     if response.double_clicked()
         && !matches!(message.content, Content::Revoked | Content::Call { .. })
     {
@@ -2247,7 +2263,6 @@ pub(crate) fn select_box(ui: &egui::Ui, palette: &Palette, rect: Rect, checked: 
         );
     }
 }
-
 
 /// Whether a conversation has visible content. Used by tests.
 #[allow(dead_code)]

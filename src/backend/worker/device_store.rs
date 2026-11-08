@@ -50,11 +50,10 @@ fn verify_or_set_node_lock(connection: &Connection) -> Result<()> {
     )?;
 
     let fp = crate::platform::machine_id::hardware_fingerprint();
-    let existing: rusqlite::Result<Vec<u8>> = connection.query_row(
-        "SELECT node_id FROM zapfast_node_lock LIMIT 1",
-        [],
-        |row| row.get(0),
-    );
+    let existing: rusqlite::Result<Vec<u8>> =
+        connection.query_row("SELECT node_id FROM zapfast_node_lock LIMIT 1", [], |row| {
+            row.get(0)
+        });
 
     match existing {
         Ok(stored) => {

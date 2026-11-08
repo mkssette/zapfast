@@ -302,7 +302,8 @@ pub fn respond(app: &mut App) {
                 row.quoted = quoting.and_then(|id| quote(app, &chat, id));
                 append(app, row);
                 let due = std::time::Instant::now() + std::time::Duration::from_millis(900);
-                app.debug_replies.push((due, chat, "Voice note received! 👍".into()));
+                app.debug_replies
+                    .push((due, chat, "Voice note received! 👍".into()));
             }
             Command::React {
                 chat,
@@ -432,7 +433,9 @@ pub(super) fn append(app: &mut App, row: Message) {
         });
     }
     if let Some(conversation) = app.conversations.get_mut(&row.chat) {
-        conversation.arrivals.insert(row.id.clone(), std::time::Instant::now());
+        conversation
+            .arrivals
+            .insert(row.id.clone(), std::time::Instant::now());
         conversation.messages.push(row);
     }
     app.scroll_to_bottom = true;

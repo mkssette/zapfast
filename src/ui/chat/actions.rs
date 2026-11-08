@@ -9,7 +9,11 @@ pub fn pin_action(chat: &Chat, locale: Locale) -> (Icon, String, Action) {
     } else {
         crate::i18n::gettext(locale, "Pin to top").into_owned()
     };
-    (icon, label, Action::SetPinned(chat.id.clone(), !chat.pinned))
+    (
+        icon,
+        label,
+        Action::SetPinned(chat.id.clone(), !chat.pinned),
+    )
 }
 
 pub fn archive_action(chat: &Chat, locale: Locale) -> (Icon, String, Action) {
@@ -18,7 +22,11 @@ pub fn archive_action(chat: &Chat, locale: Locale) -> (Icon, String, Action) {
     } else {
         crate::i18n::gettext(locale, "Archive").into_owned()
     };
-    (Icon::Archive, label, Action::SetArchived(chat.id.clone(), !chat.archived))
+    (
+        Icon::Archive,
+        label,
+        Action::SetArchived(chat.id.clone(), !chat.archived),
+    )
 }
 
 pub fn favorite_action(chat: &Chat, locale: Locale) -> Option<(Icon, String, Action)> {
@@ -30,10 +38,18 @@ pub fn favorite_action(chat: &Chat, locale: Locale) -> Option<(Icon, String, Act
     } else {
         crate::i18n::gettext(locale, "Add to favorites").into_owned()
     };
-    Some((Icon::Heart, label, Action::SetFavorite(chat.id.clone(), !chat.favorite)))
+    Some((
+        Icon::Heart,
+        label,
+        Action::SetFavorite(chat.id.clone(), !chat.favorite),
+    ))
 }
 
-pub fn leave_action(chat: &Chat, locale: Locale, our_ids: &[&str]) -> Option<(Icon, String, Action)> {
+pub fn leave_action(
+    chat: &Chat,
+    locale: Locale,
+    our_ids: &[&str],
+) -> Option<(Icon, String, Action)> {
     if !chat.can_leave(our_ids) {
         return None;
     }
@@ -42,7 +58,11 @@ pub fn leave_action(chat: &Chat, locale: Locale, our_ids: &[&str]) -> Option<(Ic
     } else {
         crate::i18n::gettext(locale, "Leave group").into_owned()
     };
-    Some((Icon::LogOut, label, Action::ShowDialog(Dialog::ConfirmLeaveGroup(chat.id.clone()))))
+    Some((
+        Icon::LogOut,
+        label,
+        Action::ShowDialog(Dialog::ConfirmLeaveGroup(chat.id.clone())),
+    ))
 }
 
 pub fn clear_chat_action(chat: &Chat, locale: Locale) -> (Icon, String, Action) {
@@ -72,7 +92,11 @@ pub fn copy_number_action(chat: &Chat, locale: Locale) -> Option<(Icon, String, 
 }
 
 pub fn lock_action(chat: &Chat, locale: Locale) -> (Icon, String, Action) {
-    let icon = if chat.locked { Icon::LockOpen } else { Icon::Lock };
+    let icon = if chat.locked {
+        Icon::LockOpen
+    } else {
+        Icon::Lock
+    };
     let label = if chat.locked {
         crate::i18n::gettext(locale, "Unlock chat").into_owned()
     } else {

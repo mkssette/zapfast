@@ -166,33 +166,32 @@ fn resolve_entry_keys(
 ) -> Result<(Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>)> {
     match entry.get_secret() {
         Ok(secret) => {
-            if secret.is_empty() && !path.try_exists()? {
-                return create_key(entry);
-            }
             let fp = crate::platform::machine_id::hardware_fingerprint();
-            let raw_key = if secret.len() == 32 {
+            #[cfg(windows)]
+            let unprotect_res = if secret.len() == 32 {
                 let mut raw = Zeroizing::new([0u8; 32]);
                 raw.copy_from_slice(&secret);
-                #[cfg(windows)]
                 if let Ok(protected) = dpapi::protect(&secret, &fp) {
                     let _ = entry.set_secret(&protected);
                 }
-                raw
+                Ok(raw)
             } else {
-                #[cfg(windows)]
-                {
-                    dpapi::unprotect(&secret, &fp).context("The archive key in the OS keyring is invalid")?
-                }
-                #[cfg(not(windows))]
-                {
-                    ensure!(
-                        secret.len() == 32,
-                        "The archive key in the OS keyring is invalid"
-                    );
-                    let mut raw = Zeroizing::new([0u8; 32]);
-                    raw.copy_from_slice(&secret);
-                    raw
-                }
+                dpapi::unprotect(&secret, &fp)
+            };
+
+            #[cfg(not(windows))]
+            let unprotect_res = if secret.len() == 32 {
+                let mut raw = Zeroizing::new([0u8; 32]);
+                raw.copy_from_slice(&secret);
+                Ok(raw)
+            } else {
+                anyhow::bail!("The archive key in the OS keyring is invalid")
+            };
+
+            let raw_key = match unprotect_res {
+                Ok(raw) => raw,
+                Err(_) if !path.try_exists()? => return create_key(entry),
+                Err(e) => return Err(e).context("The archive key in the OS keyring is invalid"),
             };
             let derived = derive_machine_bound_key(&raw_key);
             Ok((derived, raw_key))
@@ -219,11 +218,7 @@ pub(super) fn derive_machine_bound_key(raw_key: &[u8; 32]) -> Zeroizing<[u8; 32]
     derived
 }
 
-fn ensure_migrated_to_machine_bound(
-    path: &Path,
-    derived: &[u8; 32],
-    raw: &[u8; 32],
-) -> Result<()> {
+fn ensure_migrated_to_machine_bound(path: &Path, derived: &[u8; 32], raw: &[u8; 32]) -> Result<()> {
     if keyed(path, derived).is_ok() {
         return Ok(());
     }
@@ -264,7 +259,8 @@ fn create_key(entry: &keyring_core::Entry) -> Result<(Zeroizing<[u8; 32]>, Zeroi
 
     let fp = crate::platform::machine_id::hardware_fingerprint();
     #[cfg(windows)]
-    let stored_bytes = dpapi::protect(raw_key.as_ref(), &fp).unwrap_or_else(|_| raw_key.as_ref().to_vec());
+    let stored_bytes =
+        dpapi::protect(raw_key.as_ref(), &fp).unwrap_or_else(|_| raw_key.as_ref().to_vec());
     #[cfg(not(windows))]
     let stored_bytes = raw_key.as_ref().to_vec();
 
@@ -291,6 +287,7 @@ mod dpapi {
     use super::*;
 
     #[repr(C)]
+    #[allow(non_snake_case, non_camel_case_types)]
     struct DATA_BLOB {
         cbData: u32,
         pbData: *mut u8,
@@ -300,6 +297,7 @@ mod dpapi {
     const CRYPTPROTECT_LOCAL_MACHINE: u32 = 0x4;
 
     #[link(name = "crypt32")]
+    #[allow(non_snake_case)]
     unsafe extern "system" {
         fn CryptProtectData(
             pDataIn: *const DATA_BLOB,
@@ -357,9 +355,8 @@ mod dpapi {
             anyhow::bail!("Windows DPAPI CryptProtectData failed");
         }
 
-        let slice = unsafe {
-            std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize)
-        };
+        let slice =
+            unsafe { std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize) };
         let result = slice.to_vec();
         unsafe { LocalFree(out_blob.pbData.cast()) };
         Ok(result)
@@ -392,13 +389,17 @@ mod dpapi {
         };
 
         if status == 0 || out_blob.pbData.is_null() {
-            anyhow::bail!("Windows DPAPI unprotect failed: archive is locked to another machine or user");
+            anyhow::bail!(
+                "Windows DPAPI unprotect failed: archive is locked to another machine or user"
+            );
         }
 
-        let slice = unsafe {
-            std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize)
-        };
-        ensure!(slice.len() == 32, "The archive key in the OS keyring is invalid");
+        let slice =
+            unsafe { std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize) };
+        ensure!(
+            slice.len() == 32,
+            "The archive key in the OS keyring is invalid"
+        );
 
         let mut key = Zeroizing::new([0u8; 32]);
         key.copy_from_slice(slice);
@@ -659,7 +660,23 @@ mod tests {
             // The recovery action keeps the old archive before retrying unlock.
             fs::rename(&path, &kept).unwrap();
             let key = key_from_entry(&path, &entry).unwrap();
-            assert_eq!(entry.get_secret().unwrap(), key.as_slice());
+            #[cfg(windows)]
+            {
+                let raw = dpapi::unprotect(
+                    &entry.get_secret().unwrap(),
+                    &crate::platform::machine_id::hardware_fingerprint(),
+                )
+                .unwrap();
+                assert_eq!(derive_machine_bound_key(&raw).as_slice(), key.as_slice());
+            }
+            #[cfg(not(windows))]
+            assert_eq!(
+                derive_machine_bound_key(
+                    entry.get_secret().unwrap().as_slice().try_into().unwrap()
+                )
+                .as_slice(),
+                key.as_slice()
+            );
             assert_eq!(*key_from_entry(&path, &entry).unwrap(), *key);
             assert!(!path.exists());
             assert_eq!(fs::read(&kept).unwrap(), original);

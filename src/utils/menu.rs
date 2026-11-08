@@ -1,5 +1,5 @@
-use egui::{pos2, vec2, Color32, CornerRadius, Rect, Sense, Vec2};
 use crate::theme::Icon;
+use egui::{Color32, CornerRadius, Rect, Sense, Vec2, pos2, vec2};
 
 use crate::theme::{self, Palette};
 use crate::ui::widgets::{floating_menu_colors, menu_card_frame};
@@ -90,7 +90,11 @@ impl MenuBuilder {
         self
     }
 
-    pub fn item_disabled(mut self, icon: impl Into<Option<Icon>>, label: impl Into<String>) -> Self {
+    pub fn item_disabled(
+        mut self,
+        icon: impl Into<Option<Icon>>,
+        label: impl Into<String>,
+    ) -> Self {
         self.entries.push(MenuEntry::Item(MenuItem {
             icon: icon.into(),
             label: label.into(),
@@ -115,8 +119,10 @@ impl MenuBuilder {
                 match entry {
                     MenuEntry::Separator => {
                         ui.add_space(4.0);
-                        let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
-                        ui.painter().rect_filled(rect, CornerRadius::ZERO, palette.outline);
+                        let (rect, _) =
+                            ui.allocate_exact_size(vec2(ui.available_width(), 1.0), Sense::hover());
+                        ui.painter()
+                            .rect_filled(rect, CornerRadius::ZERO, palette.outline);
                         ui.add_space(4.0);
                     }
                     MenuEntry::Item(item) => {
@@ -135,7 +141,8 @@ impl MenuBuilder {
                         }
                         let (_, _, hover_fill) = floating_menu_colors(palette);
                         if response.hovered() && enabled {
-                            ui.painter().rect_filled(rect, CornerRadius::same(8), hover_fill);
+                            ui.painter()
+                                .rect_filled(rect, CornerRadius::same(8), hover_fill);
                         }
                         let text_color = if !enabled {
                             palette.dim

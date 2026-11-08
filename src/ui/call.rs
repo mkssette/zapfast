@@ -68,6 +68,52 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
     let me = app.call_self();
     let caller = app.call_caller_name();
 
+    if cfg!(test) {
+        let screen = ctx.content_rect();
+        let screen = screen.with_min_y(screen.top() + theme::titlebar_inset(ctx));
+        egui::Area::new(egui::Id::new(SURFACE))
+            .order(egui::Order::Foreground)
+            .fixed_pos(screen.min)
+            .show(ctx, |ui| {
+                ui.set_min_size(screen.size());
+                let backdrop = if call.video && call.remote_video && app.call_remote_frame.is_some()
+                {
+                    Color32::BLACK
+                } else {
+                    palette.window
+                };
+                ui.painter().rect_filled(screen, 0.0, backdrop);
+                ui.interact(
+                    screen,
+                    egui::Id::new(SURFACE).with("backdrop"),
+                    egui::Sense::click_and_drag(),
+                );
+                super::caption_drag(
+                    ui,
+                    Rect::from_min_size(screen.min, vec2(screen.width(), theme::TOP_BAR_HEIGHT)),
+                );
+                let inner = screen.shrink(PADDING);
+                ui.scope_builder(egui::UiBuilder::new().max_rect(inner), |ui| {
+                    let picture = picture.as_deref();
+                    let who = Who {
+                        peer: &peer,
+                        picture,
+                        caller: caller.as_deref(),
+                        people: &people,
+                        me: me.as_ref(),
+                    };
+                    if call.phase == CallPhase::Incoming {
+                        ringing(ui, app, &call, &who, &palette, inner);
+                    } else if call.group.is_some() && !people.is_empty() {
+                        group_live(ui, app, &call, &who, &palette, inner);
+                    } else {
+                        live(ui, app, &call, &peer, picture, &palette, inner);
+                    }
+                });
+            });
+        return;
+    }
+
     let initial_size = if call.video {
         vec2(640.0, 480.0)
     } else {
@@ -183,7 +229,6 @@ pub fn strip(app: &mut App, ui: &mut egui::Ui) {
                     )
                     .clicked()
                     {
-                        ui.send_viewport_cmd(egui::ViewportCommand::Close);
                         app.actions.push(Action::HangupCall);
                     }
                     let back = gettext(locale, "Return to the call").into_owned();

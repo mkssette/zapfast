@@ -533,9 +533,7 @@ pub(crate) fn content(
             );
             None
         }
-        Content::DisappearingTimer { .. } => {
-            None
-        }
+        Content::DisappearingTimer { .. } => None,
     }
 }
 
@@ -675,7 +673,11 @@ pub(crate) fn carousel(
         .data_mut(|data| data.insert_temp(id.with("carousel-viewport"), output.inner));
 }
 
-pub(crate) fn carousel_row(message: &Message, index: usize, card: &crate::model::InteractiveCard) -> Message {
+pub(crate) fn carousel_row(
+    message: &Message,
+    index: usize,
+    card: &crate::model::InteractiveCard,
+) -> Message {
     Message {
         id: format!("{}-card-{index}", message.id),
         chat: message.chat.clone(),

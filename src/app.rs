@@ -3967,7 +3967,9 @@ impl App {
                                 conversation.arrivals.insert(msg.id.clone(), now);
                             }
                         }
-                        conversation.arrivals.retain(|_, at| at.elapsed().as_secs() < 5);
+                        conversation
+                            .arrivals
+                            .retain(|_, at| at.elapsed().as_secs() < 5);
                     }
                     conversation.initial_loaded = true;
                 }

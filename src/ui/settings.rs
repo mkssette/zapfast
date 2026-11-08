@@ -453,11 +453,9 @@ fn sections(app: &App) -> Vec<Section> {
                     Color32::from_rgb(0xd1, 0xd5, 0xdb)
                 },
             );
-            let text_galley = ui.painter().layout_no_wrap(
-                label.clone(),
-                theme::regular(13.5),
-                palette.text,
-            );
+            let text_galley =
+                ui.painter()
+                    .layout_no_wrap(label.clone(), theme::regular(13.5), palette.text);
             let size = vec2(text_galley.size().x + 36.0, 30.0);
             let (rect, response) = ui.allocate_exact_size(size, Sense::click());
             if ui.is_rect_visible(rect) {

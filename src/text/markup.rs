@@ -91,11 +91,7 @@ pub fn layout(
     let mut placements = Vec::new();
     let mut links = Vec::new();
     let mut characters = 0;
-    let line_height = Some(if big {
-        (size * 1.15).round()
-    } else {
-        20.0
-    });
+    let line_height = Some(if big { (size * 1.15).round() } else { 20.0 });
     for span in parse(text, mentions) {
         let font_id = if span.mono {
             FontId::monospace(size * 0.95)

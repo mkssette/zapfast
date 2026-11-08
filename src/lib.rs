@@ -33,5 +33,5 @@ pub use net::*;
 pub use platform::*;
 pub use security::*;
 pub use style::*;
-pub use text::*;
 pub use text::i18n;
+pub use text::*;

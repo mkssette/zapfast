@@ -993,7 +993,13 @@ pub(crate) fn video_note(
     NOTE_SIDE
 }
 
-pub(crate) fn paint_texture(ui: &egui::Ui, rect: Rect, texture: egui::TextureId, uv: Rect, radius: f32) {
+pub(crate) fn paint_texture(
+    ui: &egui::Ui,
+    rect: Rect,
+    texture: egui::TextureId,
+    uv: Rect,
+    radius: f32,
+) {
     ui.painter().add(
         egui::epaint::RectShape::filled(
             rect,
@@ -1419,7 +1425,6 @@ pub(crate) fn voice_player(
             )
         })
 }
-
 
 pub(crate) fn attachment_name(content: &Content, path: &Path) -> String {
     let name = match content {

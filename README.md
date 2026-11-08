@@ -4,137 +4,92 @@
 
 <h1 align="center">ZapFast Unvibe</h1>
 
-<p align="center"><strong>WhatsApp, native, fast, and smooth.</strong><br>A lightweight native WhatsApp desktop app for Linux, macOS, and Windows.<br><em>An enhanced fork of <a href="https://github.com/crmne/zapfast">ZapFast</a> by Carmine Paolino.</em></p>
-
-<p align="center">
-  <a href="https://zapfast.rocks/download/"><strong>Download</strong></a> ·
-  <a href="https://zapfast.rocks/getting-started/">Getting started</a> ·
-  <a href="https://zapfast.rocks/using-zapfast/">User guide</a> ·
-  <a href="CONTRIBUTING.md">Contribute</a>
-</p>
+<p align="center"><strong>WhatsApp, native, fast, and smooth.</strong><br>A lightweight native WhatsApp desktop app for Linux, macOS, and Windows.<br><em>An active, handcrafted rework based directly on <a href="https://github.com/crmne/zapfast">ZapFast</a> by Carmine Paolino.</em></p>
 
 <p align="center">
   <a href="Cargo.toml"><img src="https://img.shields.io/badge/Built_with-Rust-00a884" alt="Built with Rust"></a>
-  <a href="https://zapfast.rocks/download/"><img src="https://img.shields.io/badge/Linux_%C2%B7_macOS_%C2%B7_Windows-24292f" alt="Linux, macOS, and Windows"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-00a884" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/Handcrafted-No_AI_Agents-blueviolet" alt="No AI Agents">
+  <img src="https://img.shields.io/badge/Status-Work_in_Progress-orange" alt="Work in Progress">
 </p>
 
-ZapFast is a WhatsApp client written in Rust with
-[egui](https://www.egui.rs) and [fastframe](https://fastframe.dev), the
-framework behind a family of native desktop apps. It links to your phone as a
-companion device through
-[whatsapp-rust](https://github.com/oxidezap/whatsapp-rust) and has no browser
-engine. In our Linux test it opens in under a second and uses about 200 MB of
-idle RAM, against 1.13 GB for WhatsApp Web.
-[See the measurements](https://zapfast.rocks/benchmarks/).
+> **Work in Progress (Handcrafted Rework)**: ZapFast Unvibe is an active rework built directly on top of the original [ZapFast](https://github.com/crmne/zapfast) codebase, maintained and developed **by hand without Claude Code, AI agents, or automated bot PRs**.
+>
+> *Note:* This project is an ongoing work in progress. While modules are being progressively audited, cleaned up, and rewritten by hand, remnants of upstream Claude Code / AI-generated code may still exist in parts of the codebase until the full rework is complete.
 
-The interface is available in English, Chinese (Simplified and Traditional),
-French, German, Indonesian, Italian, Portuguese (Brazil), Russian, Spanish,
-and Turkish.
+---
 
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/screenshot-light.png">
-  <img src="docs/screenshot.png" alt="ZapFast showing a conversation with an attachment, voice messages, reactions, a quoted reply, and a link preview">
-</picture>
+## Why ZapFast Unvibe?
 
-<details>
-<summary><strong>Watch ZapFast in action</strong></summary>
+ZapFast was originally developed as a native desktop WhatsApp client in Rust with [egui](https://www.egui.rs), communicating directly with WhatsApp via [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust) without running Chromium or Electron (~200 MB idle RAM vs. 1+ GB for web wrappers).
 
-https://github.com/user-attachments/assets/2bf86b54-45fc-4add-8de7-c426c3cdad9b
+**ZapFast Unvibe** takes that original codebase as its direct foundation and actively reworks it from the ground up: delivering a significantly more polished UI with natural motion, hardening cryptography with hardware-bound Windows DPAPI, introducing background multi-account syncing, and restructuring the codebase for human maintainability.
 
-</details>
+### Enhancements & Custom Features
 
-[Features](#your-chats-on-your-desktop) · [Install](#install) · [Link your phone](#link-your-phone) · [Help](#guides-and-help)
+- **More Polished UI & Natural Transitions (WhatsApp-Accurate)**:
+  - Handcrafted visual polish with an ongoing focus on **1:1 WhatsApp desktop accuracy**: replacing rigid, abrupt panel snaps with smooth cubic-bezier transitions for sidebars, chat info, and drawer panels..
+  - Integrated, stable call surface rendering for audio and video calls.
+- **Hardware-Bound Security (DPAPI)**:
+  - Local archives are bound to the machine's hardware using Windows Data Protection API (DPAPI) key derivation (`derive_machine_bound_key`), preventing key extraction across devices.
+- **Multi-Account Background Sync**:
+  - Dedicated background sync worker manager with automatic periodic synchronization and connection health heartbeats across all your linked accounts.
+- **Dynamic JSON i18n Engine**:
+  - Added support for runtime JSON translations alongside gettext catalogs for easy localization and community customization.
+- **Cleaner Architecture**:
+  - Modularized complex views (chat composer, header, menus) for maintainability and direct human review.
 
-## Your chats, on your desktop
+### About Upstream & Comparison
 
-| Feature | What you can do |
-|---|---|
-| **Messages** | Send formatted text, replies, edits, reactions, forwards, pictures, files, stickers, GIFs, polls, and voice messages. |
-| **Media in the chat** | Play voice messages, videos, round video messages, GIFs, and animated stickers in place. |
-| **Your history** | Keep your chats in an encrypted archive on this computer, fetch older messages from your phone as you scroll, and export locally saved chat history as text or a ZIP with downloaded attachments. |
-| **Several numbers** | Link more than one WhatsApp number and switch between them in one window. |
-| **Desktop controls** | Use keyboard shortcuts, select and copy text across messages, and stay linked in the tray with notifications. |
-| **Themes** | Choose light, dark, system appearance, or custom colours. On Omarchy, follow your desktop theme. |
-| **Privacy** | Hide locked chats behind a code, or the whole window behind an app lock. Nothing goes to a server of ours. |
+The original **[ZapFast](https://github.com/crmne/zapfast)** was developed by Carmine Paolino as a pure Rust desktop WhatsApp client, aiming for low memory footprint and high speed without Electron or Chromium wrappers.
 
-## Install
+**ZapFast Unvibe** keeps that core efficiency while transforming it into a polished, human-crafted desktop experience:
 
-| Platform | Installation |
-|---|---|
-| **macOS** | `brew install --cask crmne/tap/zapfast`, or [download the Mac app](https://zapfast.rocks/download/#macos). |
-| **Arch Linux** | `yay -S zapfast-bin` |
-| **Windows** | Choose your build on the [Download page](https://zapfast.rocks/download/#windows). |
-| **Other Linux** | Find Nix, AppImage, and other options on the [Download page](https://zapfast.rocks/download/#linux). |
-| **From source** | Follow [Getting started](https://zapfast.rocks/getting-started/) for dependencies and commands. |
+| Area | Upstream ZapFast (`crmne/zapfast`) | ZapFast Unvibe (This Fork) |
+|---|---|---|
+| **Development** | AI agent triage, automated Copilot bots | **100% Handcrafted** (WIP: progressively eliminating upstream Claude Code) |
+| **UI Polish & Fidelity** | Rigid panel snapping with no visual easing | **Significantly more polished UI, smooth drawer transitions & 1:1 WhatsApp accuracy** |
+| **Archive Security** | Software keys | **Machine-bound encryption** via Windows DPAPI |
+| **Multi-Account** | Manual/foreground switching | **Background worker sync manager** with periodic sync & heartbeats |
+| **Localization** | Static GNU gettext catalogs | **Dynamic runtime JSON engine** + Gettext support |
+| **Codebase** | Monolithic view files | **Modularized components** for easy human auditing |
 
-## Link your phone
+---
 
-1. Open ZapFast. It shows a QR code.
-2. On your phone, open WhatsApp, then **Settings**, **Linked devices**,
-   **Link a device**, and scan the code. Or click **Link with phone number**
-   and enter the eight-character code on your phone.
-3. Your recent chats arrive from the phone. Older messages follow as you
-   scroll up.
+## Getting Started
 
-The link survives restarts, and your phone does not need to stay online to
-read what ZapFast has already stored. See
-[Getting started](https://zapfast.rocks/getting-started/) for the full
-walkthrough and [How it links](https://zapfast.rocks/how-it-links/) for the
-details.
+### Run from Source
 
-## Guides and help
-
-The complete guide lives at **[zapfast.rocks](https://zapfast.rocks/)**.
-
-| You want to… | Read |
-|---|---|
-| Know what ZapFast does and does not do yet | [What is ZapFast?](https://zapfast.rocks/what-is-zapfast/) |
-| Link your phone or build from source | [Getting started](https://zapfast.rocks/getting-started/) |
-| Learn messages, stickers, polls, and shortcuts | [Using ZapFast](https://zapfast.rocks/using-zapfast/) |
-| Find settings, stored files, encryption, the app lock, and updates | [Settings and files](https://zapfast.rocks/settings-and-files/) |
-| Make your own theme | [Making a theme](https://zapfast.rocks/themes/) |
-| Understand what stays on this computer | [How it links](https://zapfast.rocks/how-it-links/) |
-| Understand account risk | [Account safety](https://zapfast.rocks/what-is-zapfast/#account-safety) |
-| Report a bug or propose a feature | Read [Contributing](CONTRIBUTING.md), then use the [issue tracker](https://github.com/mkssette/zapfast-unvibe/issues). |
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull
-request. To look at the interface without a WhatsApp account, run:
+Make sure you have the [Rust toolchain](https://rustup.rs/) installed:
 
 ```sh
+# Clone the repository
+git clone https://github.com/mkssette/zapfast-unvibe.git
+cd zapfast-unvibe
+
+# Run the app
+cargo run --release
+
+# Or preview UI offline with sample chats (no WhatsApp account needed)
 cargo run --features demo -- --demo
 ```
 
-[DEMO.md](DEMO.md) describes the demo pages, screenshots, and recorded tours, and
-[PACKAGING.md](PACKAGING.md) releases and packages.
+### Linking Your Phone
 
-Native notifications use Fastframe on Linux, macOS and Windows. ZapFast keeps
-its account/chat routing, privacy settings, notification limits and sound
-previews. Clicks open the announced message; reading a chat withdraws its
-tracked notifications. OS permissions and notification presentation still apply.
+1. Start ZapFast Unvibe to view the QR code.
+2. On your phone: open **WhatsApp** > **Settings** > **Linked devices** > **Link a device** and scan the code.
+3. Your chats sync instantly. The link persists across reboots without needing your phone to stay online.
 
+---
 
-## More native apps
+## Contributing
 
-**Want Spotify just as fast and native?** [Spotifast](https://spotifast.rocks)
-is ZapFast's sibling. Both are built on
-[fastframe](https://fastframe.dev).
+Pull requests and issues are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Acknowledgements
+## Acknowledgements & Disclaimer
 
-ZapFast Unvibe is an enhanced fork of [ZapFast](https://github.com/crmne/zapfast) by Carmine Paolino.
-It uses [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust),
-[egui](https://www.egui.rs), [fastframe](https://fastframe.dev), the
-[Inter](https://rsms.me/inter/) typeface and Noto Color Emoji (OFL), and
-[Lucide](https://lucide.dev) icons (ISC), also used for the chat wallpaper
-doodles. The notification sounds are [Pidgin](https://pidgin.im)'s, under the
-GPL-2.0 (see `assets/sounds/`).
+ZapFast Unvibe is an enhanced fork of [ZapFast](https://github.com/crmne/zapfast) by Carmine Paolino. Built using [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust), [egui](https://www.egui.rs), [fastframe](https://fastframe.dev), [Inter](https://rsms.me/inter/), [Lucide](https://lucide.dev) icons, and [Noto Color Emoji](https://fonts.google.com/noto/specimen/Noto+Color+Emoji).
 
-ZapFast is an unofficial client and is not affiliated with WhatsApp or Meta.
-Using an unofficial client may be against WhatsApp's terms of service and
-could get an account suspended. Use it at your own risk. WhatsApp is a
-trademark of WhatsApp LLC.
+ZapFast is an unofficial client and is not affiliated with WhatsApp or Meta. WhatsApp is a trademark of WhatsApp LLC.
 
 Licensed under the [MIT License](LICENSE).

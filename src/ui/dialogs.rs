@@ -347,7 +347,7 @@ fn unlock_locked_chats(app: &mut App, ui: &mut egui::Ui) {
     let palette = app.palette;
     let setup = app.settings.chat_lock_code_hash.is_none();
     let title_text = if setup {
-        crate::i18n::gettext(app.locale, "Set up locked chats")
+        crate::i18n::gettext(app.locale, "Set up locked chats PIN")
     } else {
         crate::i18n::gettext(app.locale, "Locked chats")
     };
@@ -355,12 +355,12 @@ fn unlock_locked_chats(app: &mut App, ui: &mut egui::Ui) {
     let desc_text = if setup {
         crate::i18n::gettext(
             app.locale,
-            "Choose a local code to open the Locked tab. It is separate from your phone's code. This hides chats in ZapFast, it does not add another encryption layer.",
+            "Choose a PIN code to protect your locked chats on this device. You will be asked for this code every time you enter. Leaving the Locked tab or closing the window locks them again.",
         )
     } else {
         crate::i18n::gettext(
             app.locale,
-            "Enter your local ZapFast code. Leaving the Locked tab or closing the window locks it again.",
+            "Enter your PIN code to open your locked chats. Leaving the Locked tab or closing the window locks them again automatically.",
         )
     };
     theme::paragraph(ui, desc_text, theme::regular(13.0), palette.secondary);
@@ -371,7 +371,11 @@ fn unlock_locked_chats(app: &mut App, ui: &mut egui::Ui) {
     let mut submit = ui
         .memory(|memory| memory.has_focus(entry_id) || (setup && memory.has_focus(confirm_id)))
         && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Enter));
-    let local_code_hint = crate::i18n::gettext(app.locale, "Local code");
+    let local_code_hint = if setup {
+        crate::i18n::gettext(app.locale, "New PIN code")
+    } else {
+        crate::i18n::gettext(app.locale, "Enter PIN code")
+    };
     let entry = ui.add(
         egui::TextEdit::singleline(&mut app.chat_lock_entry)
             .id(entry_id)
@@ -383,7 +387,7 @@ fn unlock_locked_chats(app: &mut App, ui: &mut egui::Ui) {
         entry.request_focus();
     }
     if setup {
-        let confirm_code_hint = crate::i18n::gettext(app.locale, "Confirm code");
+        let confirm_code_hint = crate::i18n::gettext(app.locale, "Confirm PIN code");
         ui.add(
             egui::TextEdit::singleline(&mut app.chat_lock_confirm)
                 .id(confirm_id)
@@ -404,7 +408,7 @@ fn unlock_locked_chats(app: &mut App, ui: &mut egui::Ui) {
         && (!setup || app.chat_lock_entry.trim() == app.chat_lock_confirm.trim());
     ui.horizontal(|ui| {
         let button_label = if setup {
-            crate::i18n::gettext(app.locale, "Set code and open")
+            crate::i18n::gettext(app.locale, "Set PIN and open")
         } else {
             crate::i18n::gettext(app.locale, "Open locked chats")
         };

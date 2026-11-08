@@ -62,13 +62,23 @@ impl AccountManager {
     }
 
     #[inline]
-    pub fn get(&self, id: &AccountId) -> Option<&Account> {
+    pub fn get_by_id(&self, id: &AccountId) -> Option<&Account> {
         self.accounts.iter().find(|account| &account.id == id)
     }
 
     #[inline]
-    pub fn get_mut(&mut self, id: &AccountId) -> Option<&mut Account> {
+    pub fn get_by_id_mut(&mut self, id: &AccountId) -> Option<&mut Account> {
         self.accounts.iter_mut().find(|account| &account.id == id)
+    }
+
+    #[inline]
+    pub fn get(&self, index: usize) -> Option<&Account> {
+        self.accounts.get(index)
+    }
+
+    #[inline]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Account> {
+        self.accounts.get_mut(index)
     }
 
     #[inline]
@@ -267,6 +277,37 @@ impl std::ops::IndexMut<usize> for AccountManager {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.accounts[index]
+    }
+}
+
+impl Default for AccountManager {
+    fn default() -> Self {
+        Self {
+            accounts: Vec::new(),
+            active: 0,
+            background_sync: true,
+        }
+    }
+}
+
+impl From<Vec<Account>> for AccountManager {
+    fn from(accounts: Vec<Account>) -> Self {
+        Self::new(accounts, 0)
+    }
+}
+
+impl From<AccountManager> for Vec<Account> {
+    fn from(manager: AccountManager) -> Self {
+        manager.accounts
+    }
+}
+
+impl IntoIterator for AccountManager {
+    type Item = Account;
+    type IntoIter = std::vec::IntoIter<Account>;
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.accounts.into_iter()
     }
 }
 

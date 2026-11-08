@@ -463,7 +463,7 @@ pub struct App {
     settings_dirty: bool,
     last_settings_save: Instant,
     pub roster: AccountRoster,
-    pub accounts: Vec<Account>,
+    pub accounts: crate::account::AccountManager,
     pub active: usize,
     pub adding_account: bool,
     pub debug_account: bool,
@@ -1556,7 +1556,7 @@ impl App {
             files: fastframe_file::Writer::new(),
             clipboard_reader: ClipboardReader::default(),
             roster,
-            accounts,
+            accounts: crate::account::AccountManager::new(accounts, active),
             active,
             adding_account: false,
             debug_account: false,
@@ -3378,9 +3378,7 @@ impl App {
     }
 
     pub fn should_show_chat_lock_hint(&self) -> bool {
-        self.locked_count() > 0
-            && self.settings.chat_lock_code_hash.is_none()
-            && !self.settings.chat_lock_hint_dismissed
+        false
     }
 
     /// A person never written to, left out of the list as on the phone. One
@@ -18949,7 +18947,7 @@ mod tests {
         let ctx = egui::Context::default();
         app.update = Some(crate::updates::Release {
             version: "99.0.0".into(),
-            url: "https://github.com/crmne/zapfast/releases/latest".into(),
+            url: "https://github.com/mkssette/zapfast-unvibe/releases/latest".into(),
         });
         app.update_support = Some(Err("Use your package manager".into()));
         app.settings.download_updates_automatically = true;

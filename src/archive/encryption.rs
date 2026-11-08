@@ -259,8 +259,8 @@ fn create_key(entry: &keyring_core::Entry) -> Result<(Zeroizing<[u8; 32]>, Zeroi
 
     let fp = crate::platform::machine_id::hardware_fingerprint();
     #[cfg(windows)]
-    let stored_bytes =
-        dpapi::protect(raw_key.as_ref(), &fp).unwrap_or_else(|_| raw_key.as_ref().to_vec());
+    let stored_bytes = dpapi::protect(raw_key.as_ref(), &fp)
+        .context("Could not protect the archive key with Windows DPAPI")?;
     #[cfg(not(windows))]
     let stored_bytes = raw_key.as_ref().to_vec();
 
@@ -294,7 +294,6 @@ mod dpapi {
     }
 
     const CRYPTPROTECT_UI_FORBIDDEN: u32 = 0x1;
-    const CRYPTPROTECT_LOCAL_MACHINE: u32 = 0x4;
 
     #[link(name = "crypt32")]
     #[allow(non_snake_case)]
@@ -346,7 +345,7 @@ mod dpapi {
                 &entropy_blob,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
-                CRYPTPROTECT_LOCAL_MACHINE | CRYPTPROTECT_UI_FORBIDDEN,
+                CRYPTPROTECT_UI_FORBIDDEN,
                 &mut out_blob,
             )
         };

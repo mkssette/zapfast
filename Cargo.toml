@@ -329,7 +329,7 @@ name = "macos_menu"
 harness = false
 
 [features]
-default = ["demo"]
+default = []
 # Sample data, layout tests, and screenshots. Not used in release builds.
 demo = []
 

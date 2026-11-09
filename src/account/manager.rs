@@ -132,6 +132,12 @@ impl AccountManager {
     }
 
     #[inline]
+    pub fn clear(&mut self) {
+        self.accounts.clear();
+        self.active = 0;
+    }
+
+    #[inline]
     pub fn remove(&mut self, index: usize) -> Account {
         let removed = self.accounts.remove(index);
         if self.active >= self.accounts.len() && !self.accounts.is_empty() {

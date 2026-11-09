@@ -52,7 +52,7 @@ impl AppDirs {
     /// Adopts earlier names, newest first, without replacing existing data.
     /// Call only after acquiring the instance guard, and never for demo runs.
     pub fn adopt_previous_names(&self) -> std::io::Result<()> {
-        for name in ["zapfast", "fastsapp", "fastwhatsapp"] {
+        for name in ["fastsapp", "fastwhatsapp"] {
             if let Some(old) = Self::of(name) {
                 self.adopt(&old)?;
             }
@@ -63,6 +63,80 @@ impl AppDirs {
             }
         }
         Ok(())
+    }
+
+    /// Checks whether an existing upstream ZapFast installation with data exists.
+    pub fn has_upstream_data(&self) -> bool {
+        let Some(upstream) = Self::of("zapfast") else {
+            return false;
+        };
+        upstream.accounts_file().exists()
+            || upstream.state.join("accounts").exists()
+            || upstream.state.join("session.db").exists()
+    }
+
+    /// Safely copies data from an existing upstream ZapFast directory if requested,
+    /// without moving or modifying the original ZapFast installation.
+    pub fn copy_from_upstream(&self) -> std::io::Result<bool> {
+        let Some(upstream) = Self::of("zapfast") else {
+            return Ok(false);
+        };
+        if !upstream.state.exists() {
+            return Ok(false);
+        }
+        for (from, to) in [
+            (&upstream.config, &self.config),
+            (&upstream.state, &self.state),
+            (&upstream.cache, &self.cache),
+        ] {
+            copy_directory_contents(from, to)?;
+        }
+        if let Ok(entries) = std::fs::read_dir(upstream.state.join("accounts")) {
+            for entry in entries.flatten() {
+                let id = entry.file_name();
+                let old_archive = entry.path().join("archive.db");
+                let new_archive = self.state.join("accounts").join(&id).join("archive.db");
+                let _ = crate::archive::copy_archive_key(&old_archive, &new_archive);
+            }
+        }
+        let _ = crate::archive::copy_archive_key(
+            &upstream.archive_db(),
+            &self.account(&AccountId::first()).archive_db(),
+        );
+        Ok(true)
+    }
+
+    /// Moves data from upstream ZapFast and removes the original folders to free space.
+    pub fn move_and_clean_upstream(&self) -> std::io::Result<bool> {
+        let Some(upstream) = Self::of("zapfast") else {
+            return Ok(false);
+        };
+        if !upstream.state.exists() && !upstream.config.exists() {
+            return Ok(false);
+        }
+        if let Ok(entries) = std::fs::read_dir(upstream.state.join("accounts")) {
+            for entry in entries.flatten() {
+                let id = entry.file_name();
+                let old_archive = entry.path().join("archive.db");
+                let new_archive = self.state.join("accounts").join(&id).join("archive.db");
+                let _ = crate::archive::copy_archive_key(&old_archive, &new_archive);
+            }
+        }
+        let _ = crate::archive::copy_archive_key(
+            &upstream.archive_db(),
+            &self.account(&AccountId::first()).archive_db(),
+        );
+        for (from, to) in [
+            (&upstream.config, &self.config),
+            (&upstream.state, &self.state),
+            (&upstream.cache, &self.cache),
+        ] {
+            if from.exists() {
+                copy_directory_contents(from, to)?;
+                let _ = std::fs::remove_dir_all(from);
+            }
+        }
+        Ok(true)
     }
 
     fn adopt(&self, old: &Self) -> std::io::Result<()> {
@@ -423,6 +497,30 @@ fn adopt_directory(from: &Path, to: &Path) -> std::io::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::rename(from, to)?;
+    }
+    Ok(())
+}
+
+fn copy_directory_contents(from: &Path, to: &Path) -> std::io::Result<()> {
+    if !from.is_dir() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let dest = to.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_directory_contents(&entry.path(), &dest)?;
+        } else if file_type.is_file() {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.ends_with(".db") {
+                    let _ = std::fs::remove_file(to.join(format!("{name}-shm")));
+                    let _ = std::fs::remove_file(to.join(format!("{name}-wal")));
+                }
+            }
+            std::fs::copy(entry.path(), dest)?;
+        }
     }
     Ok(())
 }

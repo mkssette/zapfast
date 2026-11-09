@@ -57,14 +57,10 @@ fn verify_or_set_node_lock(connection: &Connection) -> Result<()> {
 
     match existing {
         Ok(stored) => {
-            if stored.as_slice() != fp.as_slice() {
-                log::warn!("Session database node lock mismatch; updating lock for this machine");
-                connection.execute("DELETE FROM zapfast_node_lock;", [])?;
-                connection.execute(
-                    "INSERT INTO zapfast_node_lock (node_id) VALUES (?1)",
-                    rusqlite::params![fp.as_slice()],
-                )?;
-            }
+            anyhow::ensure!(
+                stored.as_slice() == fp.as_slice(),
+                "Session database is locked to a different computer"
+            );
         }
         Err(rusqlite::Error::QueryReturnedNoRows) => {
             connection.execute(

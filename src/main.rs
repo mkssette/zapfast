@@ -20,6 +20,10 @@ struct Cli {
     #[arg(long)]
     start_hidden: bool,
 
+    /// Safely copy configuration and data from an upstream ZapFast directory.
+    #[arg(long)]
+    migrate_from_zapfast: bool,
+
     /// Start with offline sample chats.
     #[cfg(feature = "demo")]
     #[arg(long)]
@@ -311,6 +315,9 @@ fn run() -> eframe::Result<()> {
     if !demo {
         dirs.adopt_previous_names()
             .map_err(|error| eframe::Error::AppCreation(error.into()))?;
+        if cli.migrate_from_zapfast {
+            let _ = dirs.copy_from_upstream();
+        }
     }
     // Do not open logs, settings, or either database unless their parent
     // directories have been created and secured successfully.

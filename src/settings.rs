@@ -546,12 +546,15 @@ pub struct Settings {
     pub window_y: Option<f32>,
     /// Whether the window was maximized when it last closed.
     pub window_maximized: bool,
+    /// Whether the prompt to migrate from upstream ZapFast has been answered.
+    pub upstream_migration_decided: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             version: SETTINGS_VERSION,
+            upstream_migration_decided: false,
             theme: ThemeChoice::System,
             messages_theme: false,
             font: FontChoice::System,

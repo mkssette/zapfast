@@ -2484,6 +2484,7 @@ pub enum Dialog {
     NewContact,
     UnlockLockedChats,
     ConfirmLockChat(ChatId),
+    MigrateUpstream,
     BlockedContacts,
     ConfirmBlock {
         chat: ChatId,
@@ -2701,9 +2702,17 @@ pub fn forward_limit(frequently_forwarded: bool) -> usize {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationStrategy {
+    Copy,
+    MoveAndClean,
+    Skip,
+}
+
 /// Actions queued by views and applied after drawing.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Action {
+    MigrateUpstream(MigrationStrategy),
     FetchBlocklist,
     SetBlocked {
         chat: ChatId,

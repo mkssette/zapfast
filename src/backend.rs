@@ -55,6 +55,14 @@ pub enum LinkStatus {
 }
 
 impl LinkStatus {
+    pub fn unlinked() -> Self {
+        Self::Unlinked {
+            qr: None,
+            pair_code: None,
+            pairing_phone: None,
+        }
+    }
+
     pub fn is_connected(&self) -> bool {
         matches!(self, Self::Connected)
     }

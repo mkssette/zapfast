@@ -1547,6 +1547,20 @@ impl App {
         // With a password set, ZapFast starts locked.
         let app_lock = crate::app_lock::AppLock::new(settings.app_lock_hash.is_some());
         let tray_lockable = settings.app_lock_hash.is_some();
+        let has_linked_data = dirs
+            .account(&AccountId::first())
+            .archive_db()
+            .metadata()
+            .map(|m| m.len() > 1_000_000)
+            .unwrap_or(false);
+        let initial_dialog = if (!settings.upstream_migration_decided || !has_linked_data)
+            && dirs.has_upstream_data()
+            && !cfg!(test)
+        {
+            Some(crate::model::Dialog::MigrateUpstream)
+        } else {
+            None
+        };
         let mut app = Self {
             dirs,
             settings,
@@ -1692,7 +1706,7 @@ impl App {
             scrolling: fastframe_scroll::Scrolling::default(),
             scroll_route: ScrollRoute::default(),
             page: Page::Chats,
-            dialog: None,
+            dialog: initial_dialog,
             nav_history: History::default(),
             forward_search: String::new(),
             forward_recipients: Vec::new(),
@@ -2100,6 +2114,58 @@ impl App {
         self.nav_history.clear();
     }
 
+    fn reload_accounts(&mut self) {
+        self.settings = crate::settings::Settings::load(&self.dirs.settings_file());
+        self.settings.upstream_migration_decided = true;
+        let mut roster = AccountRoster::load(&self.dirs.accounts_file()).unwrap_or_default();
+        if roster.order.is_empty() {
+            roster = AccountRoster::default();
+        }
+        let mut accounts = Vec::new();
+        for id in &roster.order {
+            let Some(id) = AccountId::parse(id) else {
+                continue;
+            };
+            if let Ok(mut account) = Account::spawn(&self.dirs, id, &self.settings, &self.waker) {
+                if let Some(startup) = account.backend.take_startup() {
+                    let _ = startup.send(());
+                }
+                account.backend.send(Command::SetDownloadFolder(
+                    self.settings.download_folder.clone(),
+                ));
+                account.backend.send(Command::SetKeepChatsArchived(
+                    self.settings.keep_chats_archived,
+                ));
+                accounts.push(account);
+            }
+        }
+        if accounts.is_empty() {
+            if let Ok(mut account) =
+                Account::spawn(&self.dirs, AccountId::first(), &self.settings, &self.waker)
+            {
+                if let Some(startup) = account.backend.take_startup() {
+                    let _ = startup.send(());
+                }
+                accounts.push(account);
+            }
+            roster = AccountRoster::default();
+        }
+        let active = roster
+            .order
+            .iter()
+            .position(|id| id == &roster.active)
+            .unwrap_or(0)
+            .min(accounts.len().saturating_sub(1));
+        self.roster = roster;
+        self.accounts = crate::account::AccountManager::new(accounts, active);
+        self.active = active;
+        self.adding_account = false;
+        self.clear_account_ui();
+        self.page = Page::Chats;
+        self.report_presence();
+        self.nav_history.clear();
+    }
+
     #[cfg(any(test, feature = "demo"))]
     pub fn enable_debug_account(&mut self) {
         if self.link.is_connected() && !self.backend.is_offline() {
@@ -2135,6 +2201,15 @@ impl App {
         };
         if self.accounts.len() <= 1 {
             self.accounts[index].backend.send(Command::Unlink);
+            if matches!(self.accounts[index].link, LinkStatus::Failed(_)) {
+                self.handle_link(LinkStatus::unlinked(), true);
+            }
+            return;
+        }
+        if matches!(self.accounts[index].link, LinkStatus::Failed(_))
+            || self.accounts[index].backend.is_offline()
+        {
+            self.finish_removed(index);
             return;
         }
         self.accounts[index].backend.send(Command::RemoveAccount);
@@ -2331,8 +2406,12 @@ impl App {
     /// Follows the window's own focus, which `window_focused` does not: that
     /// one stays false behind the app lock.
     fn track_focus(&mut self, ctx: &egui::Context, now: Instant) {
-        let focused =
-            !self.window_hidden && ctx.input(|input| input.viewport().focused) == Some(true);
+        let is_minimized = ctx.input(|input| input.viewport().minimized == Some(true));
+        let is_unfocused = ctx.input(|input| input.viewport().focused == Some(false));
+        let focused = !self.window_hidden
+            && !is_minimized
+            && !is_unfocused
+            && ctx.input(|input| input.viewport().focused) == Some(true);
         if self.has_focus && !focused {
             self.focus_left = Some(now);
         }
@@ -7458,6 +7537,42 @@ impl App {
                     self.refocus_composer(ctx);
                 }
             }
+            Action::MigrateUpstream(strategy) => {
+                self.settings.upstream_migration_decided = true;
+                self.mark_settings_dirty();
+                match strategy {
+                    crate::model::MigrationStrategy::Copy => {
+                        for account in &mut self.accounts {
+                            account.backend.shutdown();
+                        }
+                        self.accounts.clear();
+                        match self.dirs.copy_from_upstream() {
+                            Ok(true) => self.reload_accounts(),
+                            Ok(false) => {}
+                            Err(e) => {
+                                log::error!("could not copy upstream data: {e}");
+                                self.toast_error(format!("Error copying data: {e}"));
+                            }
+                        }
+                    }
+                    crate::model::MigrationStrategy::MoveAndClean => {
+                        for account in &mut self.accounts {
+                            account.backend.shutdown();
+                        }
+                        self.accounts.clear();
+                        match self.dirs.move_and_clean_upstream() {
+                            Ok(true) => self.reload_accounts(),
+                            Ok(false) => {}
+                            Err(e) => {
+                                log::error!("could not move upstream data: {e}");
+                                self.toast_error(format!("Error moving data: {e}"));
+                            }
+                        }
+                    }
+                    crate::model::MigrationStrategy::Skip => {}
+                }
+                self.dialog = None;
+            }
             Action::ToggleSettings => {
                 // The button that opened settings closes them again, and
                 // closing lands on what was showing, exactly as Escape does.
@@ -10440,7 +10555,9 @@ impl App {
     pub fn background_frame(&mut self, ctx: &egui::Context) {
         // Events are drained before frame_ui observes focus. Losing focus in
         // this frame must take effect before an incoming chat update can read it.
-        if self.window_hidden || ctx.input(|input| input.viewport().focused) == Some(false) {
+        let is_minimized = ctx.input(|input| input.viewport().minimized == Some(true));
+        let is_unfocused = ctx.input(|input| input.viewport().focused == Some(false));
+        if self.window_hidden || is_minimized || is_unfocused {
             self.window_focused = false;
         }
         self.tick_app_lock(ctx);
@@ -11425,7 +11542,9 @@ impl App {
         let locked = self.app_lock.is_locked();
         // Behind the lock screen nobody is reading; unlocking counts as
         // coming back to the window.
-        let focused = ctx.input(|input| input.viewport().focused.unwrap_or(true)) && !locked;
+        let is_minimized = ctx.input(|input| input.viewport().minimized == Some(true));
+        let is_unfocused = ctx.input(|input| input.viewport().focused == Some(false));
+        let focused = !self.window_hidden && !is_minimized && !is_unfocused && !locked;
         let regained_focus = focused && !self.window_focused;
         // Mark messages received while hidden as read on window return.
         if regained_focus

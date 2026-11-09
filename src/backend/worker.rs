@@ -894,6 +894,16 @@ pub async fn run(
                             }
                             break;
                         }
+                        Some(Command::RemoveAccount) => {
+                            let _ = events.send(Event::AccountRemoved);
+                            waker.wake();
+                            return;
+                        }
+                        Some(Command::Unlink) => {
+                            let _ = events.send(Event::Link(LinkStatus::unlinked()));
+                            waker.wake();
+                            return;
+                        }
                         Some(Command::Shutdown) | None => return,
                         _ => {}
                     }

@@ -197,6 +197,27 @@ fn resolve_entry_keys(
             Ok((derived, raw_key))
         }
         Err(keyring_core::Error::NoEntry) => {
+            if let Ok(store) = platform_store() {
+                if let Some(parent) = path.parent() {
+                    let parent_str = parent.to_string_lossy();
+                    for old_name in ["zapfast", "fastsapp", "fastwhatsapp"] {
+                        if parent_str.contains("zapfast-unvibe") {
+                            let old_parent_str = parent_str.replace("zapfast-unvibe", old_name);
+                            let old_parent = Path::new(&old_parent_str);
+                            if let Ok(old_id) = identity_for(old_parent) {
+                                if let Ok(old_entry) = store.build("rocks.zapfast.ZapFast", &old_id, None) {
+                                    if let Ok(secret) = old_entry.get_secret() {
+                                        if !secret.is_empty() {
+                                            let _ = entry.set_secret(&secret);
+                                            return resolve_entry_keys(path, entry);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             ensure!(
                 plaintext(path)?,
                 "The archive is encrypted but its OS keyring key is missing. Restore the original keyring; the archive has not been changed"

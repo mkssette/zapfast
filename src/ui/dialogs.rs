@@ -31,6 +31,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         .backdrop_color(palette.shadow)
         .show(ctx, |ui| {
             ui.set_width(match dialog {
+                Dialog::MigrateUpstream => 440.0,
                 Dialog::Shortcuts => shortcuts_width(ui.ctx().content_rect().width()),
                 Dialog::About => 380.0,
                 Dialog::ConfirmUnlink => 380.0,
@@ -88,6 +89,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                     button,
                 } => interactive_list(app, ui, &chat, &message, button),
                 Dialog::Labels => super::labels::manager(app, ui, &palette),
+                Dialog::MigrateUpstream => migrate_upstream(app, ui),
                 Dialog::Shortcuts => shortcuts(app, ui),
                 Dialog::About => about(app, ui),
                 Dialog::ConfirmUnlink => confirm_unlink(app, ui),
@@ -1435,6 +1437,101 @@ fn sticker_maker(app: &mut App, ui: &mut egui::Ui) {
                 app.actions.push(Action::CloseDialog);
             }
         });
+    });
+}
+
+fn migrate_upstream(app: &mut App, ui: &mut egui::Ui) {
+    let palette = app.palette;
+    let locale = app.locale;
+
+    title(
+        ui,
+        app,
+        &crate::i18n::gettext(locale, "ZapFast data detected"),
+    );
+
+    theme::paragraph(
+        ui,
+        crate::i18n::gettext(
+            locale,
+            "An existing ZapFast installation with accounts and messages was found on this computer. How would you like to proceed?",
+        ),
+        theme::regular(13.0),
+        palette.secondary,
+    );
+
+    ui.add_space(10.0);
+
+    // Option 1: Safe copy
+    ui.group(|ui| {
+        ui.horizontal(|ui| {
+            if theme::pill_button(
+                ui,
+                &palette,
+                &crate::i18n::gettext(locale, "Copy data (Recommended)"),
+                true,
+            )
+            .clicked()
+            {
+                app.actions
+                    .push(Action::MigrateUpstream(crate::model::MigrationStrategy::Copy));
+            }
+        });
+        theme::paragraph(
+            ui,
+            crate::i18n::gettext(
+                locale,
+                "Copies accounts, settings, and sessions to ZapFast Unvibe. The original ZapFast remains intact and functional.",
+            ),
+            theme::regular(12.0),
+            palette.secondary,
+        );
+    });
+
+    ui.add_space(6.0);
+
+    // Option 2: Full move and cleanup
+    ui.group(|ui| {
+        ui.horizontal(|ui| {
+            if theme::pill_button(
+                ui,
+                &palette,
+                &crate::i18n::gettext(locale, "Move completely (Clean old)"),
+                false,
+            )
+            .clicked()
+            {
+                app.actions.push(Action::MigrateUpstream(
+                    crate::model::MigrationStrategy::MoveAndClean,
+                ));
+            }
+        });
+        theme::paragraph(
+            ui,
+            crate::i18n::gettext(
+                locale,
+                "Moves all data to ZapFast Unvibe and deletes the old original ZapFast folders to free space.",
+            ),
+            theme::regular(12.0),
+            palette.secondary,
+        );
+    });
+
+    ui.add_space(8.0);
+
+    // Option 3: Do not migrate (Start fresh)
+    ui.horizontal(|ui| {
+        if theme::pill_button(
+            ui,
+            &palette,
+            &crate::i18n::gettext(locale, "Do not migrate (Start fresh)"),
+            false,
+        )
+        .clicked()
+        {
+            app.actions
+                .push(Action::MigrateUpstream(crate::model::MigrationStrategy::Skip));
+        }
     });
 }
 

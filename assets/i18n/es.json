@@ -889,6 +889,13 @@
     "{} vote": "{} vote",
     "{} voter": "{} voter",
     "{}+": "{}+",
-    "{}: {}": "{0}: {1}"
+    "{}: {}": "{0}: {1}",
+    "ZapFast data detected": "Datos de ZapFast detectados",
+    "An existing ZapFast installation with accounts and messages was found on this computer. How would you like to proceed?": "Se encontró una instalación previa de ZapFast con cuentas y mensajes en esta computadora. ¿Cómo deseas proceder?",
+    "Copy data (Recommended)": "Copiar datos (Recomendado)",
+    "Copies accounts, settings, and sessions to ZapFast Unvibe. The original ZapFast remains intact and functional.": "Copia cuentas, ajustes y sesiones a ZapFast Unvibe. El ZapFast original se mantiene intacto y funcional.",
+    "Move completely (Clean old)": "Migrar completamente (Limpiar anterior)",
+    "Moves all data to ZapFast Unvibe and deletes the old original ZapFast folders to free space.": "Mueve todos los datos a ZapFast Unvibe y elimina las carpetas anteriores de ZapFast para liberar espacio.",
+    "Do not migrate (Start fresh)": "No migrar (Empezar desde cero)"
   }
 }
